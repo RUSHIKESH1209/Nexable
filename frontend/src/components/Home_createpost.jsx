@@ -36,7 +36,7 @@ const Home_createpost = () => {
             className="flex-1 border border-gray-300 rounded-md p-2 text-sm resize-none"
             rows={2}
           />
-          <label className="cursor-pointer text-[#EC5228] text-3xl">
+          <label className="cursor-pointer text-[#EC5228] text-4xl">
             <FaImage />
             <input
               type="file"

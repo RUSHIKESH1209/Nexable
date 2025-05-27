@@ -1,23 +1,27 @@
-// Login.js
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
+import { ShopContext } from '../context/ShopContext';
+
 
 function Login() {
+  const { name, setName, email, setEmail, password, setPassword } = useContext(ShopContext);
   const [isSignup, setIsSignup] = useState(false);
-  const [formData, setFormData] = useState({ username: '', email: '', password: '' });
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  const backendURL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const url = isSignup ? '/api/auth/signup' : '/api/auth/login';
+    const url = isSignup ? `${backendURL}/api/user/register` : `${backendURL}/api/user/login`;
+
+    // Prepare form data object for request
+    const formData = isSignup
+      ? { name, email, password }
+      : { email, password };
+
     try {
       const res = await axios.post(url, formData);
       localStorage.setItem('token', res.data.token);
-      window.location.href = '/';
+      window.location.href = isSignup ? '/createprofile' : '/home';
     } catch (err) {
       alert(err.response?.data?.message || 'Something went wrong');
     }
@@ -43,10 +47,10 @@ function Login() {
             {isSignup && (
               <input
                 type="text"
-                name="username"
+                name="name"
                 placeholder="Username"
-                value={formData.username}
-                onChange={handleChange}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 required
                 className="w-full px-4 py-3 border border-[#1F7D53] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#255F38]"
               />
@@ -55,8 +59,8 @@ function Login() {
               type="email"
               name="email"
               placeholder="Email"
-              value={formData.email}
-              onChange={handleChange}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
               className="w-full px-4 py-3 border border-[#1F7D53] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#255F38]"
             />
@@ -64,8 +68,8 @@ function Login() {
               type="password"
               name="password"
               placeholder="Password"
-              value={formData.password}
-              onChange={handleChange}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               required
               className="w-full px-4 py-3 border border-[#1F7D53] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#255F38]"
             />

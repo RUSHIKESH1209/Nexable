@@ -1,63 +1,85 @@
-// CreateProfile.js
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPen, faPlus } from '@fortawesome/free-solid-svg-icons';
+import { ShopContext } from '../context/ShopContext';
+
+const backendURL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 
 function CreateProfile() {
-  const [formData, setFormData] = useState({
-    profilePic: null,
-    about: '',
-    phone: '',
-    address: '',
-    skills: [],
-    skillInput: '',
-    position: '',
-    company: ''
-  });
-  const [preview, setPreview] = useState(null);
+  const {
+    email,
+    profilePic, setProfilePic,
+    about, setAbout,
+    phone, setPhone,
+    address, setAddress,
+    skills, setSkills,
+    skillInput, setSkillInput,
+    position, setPosition,
+    company, setCompany,
+  } = useContext(ShopContext);
+
+  const [preview, setPreview] = useState(profilePic ? URL.createObjectURL(profilePic) : null);
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
     if (name === 'profilePic') {
       const file = files[0];
-      setFormData({ ...formData, profilePic: file });
+      setProfilePic(file);
       if (file) {
         const reader = new FileReader();
         reader.onloadend = () => setPreview(reader.result);
         reader.readAsDataURL(file);
+      } else {
+        setPreview(null);
       }
+    } else if (name === 'skillInput') {
+      setSkillInput(value);
     } else {
-      setFormData({ ...formData, [name]: value });
+      switch (name) {
+        case 'about': setAbout(value); break;
+        case 'phone': setPhone(value); break;
+        case 'address': setAddress(value); break;
+        case 'position': setPosition(value); break;
+        case 'company': setCompany(value); break;
+        default: break;
+      }
     }
   };
 
   const handleSkillAdd = () => {
-    if (formData.skillInput.trim() !== '') {
-      setFormData({
-        ...formData,
-        skills: [...formData.skills, formData.skillInput.trim()],
-        skillInput: ''
-      });
+    if (skillInput.trim() !== '') {
+      setSkills([...skills, skillInput.trim()]);
+      setSkillInput('');
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const data = new FormData();
-    for (let key in formData) {
-      if (key !== 'skillInput') {
-        data.append(key, Array.isArray(formData[key]) ? JSON.stringify(formData[key]) : formData[key]);
-      }
-    }
+    data.append('profilePic', profilePic);
+    data.append('about', about);
+    data.append('phone', phone);
+    data.append('address', address);
+    data.append('skills', JSON.stringify(skills));
+    data.append('position', position);
+    data.append('company', company);
+    data.append('email', email);
+
     try {
-      await axios.post('/api/profile/create', data);
+      await axios.post(`${backendURL}/api/user/createprofile`, data, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
       alert('Profile created successfully');
     } catch (error) {
       alert('Error creating profile');
     }
   };
+
+  console.log( `${backendURL}/api/user/createprofile`);
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center px-4 py-10">
@@ -91,11 +113,12 @@ function CreateProfile() {
               />
             </label>
           </div>
+
           <input
             type="text"
             name="about"
             placeholder="About You"
-            value={formData.about}
+            value={about}
             onChange={handleChange}
             className="w-full px-4 py-3 border border-[#1F7D53] rounded-xl"
           />
@@ -103,7 +126,7 @@ function CreateProfile() {
             type="tel"
             name="phone"
             placeholder="Phone Number"
-            value={formData.phone}
+            value={phone}
             onChange={handleChange}
             className="w-full px-4 py-3 border border-[#1F7D53] rounded-xl"
           />
@@ -111,7 +134,7 @@ function CreateProfile() {
             type="text"
             name="address"
             placeholder="Address"
-            value={formData.address}
+            value={address}
             onChange={handleChange}
             className="w-full px-4 py-3 border border-[#1F7D53] rounded-xl"
           />
@@ -122,7 +145,7 @@ function CreateProfile() {
                 type="text"
                 name="skillInput"
                 placeholder="Enter a skill"
-                value={formData.skillInput}
+                value={skillInput}
                 onChange={handleChange}
                 className="flex-grow px-4 py-3 border border-[#1F7D53] rounded-xl"
               />
@@ -135,7 +158,7 @@ function CreateProfile() {
               </button>
             </div>
             <div className="flex flex-wrap gap-2">
-              {formData.skills.map((skill, index) => (
+              {skills.map((skill, index) => (
                 <span
                   key={index}
                   className="bg-[#1F7D53] text-white px-3 py-1 rounded-full text-sm"
@@ -151,7 +174,7 @@ function CreateProfile() {
               type="text"
               name="position"
               placeholder="Current Position"
-              value={formData.position}
+              value={position}
               onChange={handleChange}
               className="w-1/2 px-4 py-3 border border-[#1F7D53] rounded-xl"
             />
@@ -159,7 +182,7 @@ function CreateProfile() {
               type="text"
               name="company"
               placeholder="Company or College"
-              value={formData.company}
+              value={company}
               onChange={handleChange}
               className="w-1/2 px-4 py-3 border border-[#1F7D53] rounded-xl"
             />
