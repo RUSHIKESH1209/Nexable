@@ -1,14 +1,14 @@
-import React from 'react'
-import Profile_template from '../components/Profile_template'
-import Profile_posts from '../components/Profile_posts'
+import React from 'react';
+import Profile_template from '../components/Profile_template';
+import Profile_posts from '../components/Profile_posts';
 
 const Profile = () => {
   return (
-    <>
-      <Profile_template></Profile_template>
-      <Profile_posts></Profile_posts>
-    </>
-  )
-}
+    <div className="bg-gray-100 min-h-screen">
+      <Profile_template />
+      <Profile_posts />
+    </div>
+  );
+};
 
-export default Profile
+export default Profile;

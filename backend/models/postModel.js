@@ -1,14 +1,40 @@
-const mongoose = require('mongoose');
+// models/postModel.js
+import mongoose from 'mongoose';
 
-const postSchema = new mongoose.Schema({
-    author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    postCaption: { type: String },
-    postPic: { type: String }, // Optional image
-    likes: { type: Number, default: '0' },
-    comments: [{
-        user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-        comment: { type: String }
-    }],
-}, { timestamps: true });
+const postSchema = new mongoose.Schema(
+  {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    caption: {
+      type: String,
+    },
+    image: {
+      type: String, // URL from Cloudinary if uploaded
+    },
+    likes: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
+    comments: [
+      {
+        userId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User',
+        },
+        text: String,
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
+  },
+  { timestamps: true } // Adds createdAt and updatedAt automatically
+);
 
-module.exports = mongoose.model('Post', postSchema);
+
+const postModel = mongoose.models.post || mongoose.model("post", postSchema)
+
+export default postModel 

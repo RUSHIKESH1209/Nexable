@@ -18,6 +18,7 @@ function CreateProfile() {
     skillInput, setSkillInput,
     position, setPosition,
     company, setCompany,
+    token, // ✅ Token from context
   } = useContext(ShopContext);
 
   const [preview, setPreview] = useState(profilePic ? URL.createObjectURL(profilePic) : null);
@@ -70,16 +71,17 @@ function CreateProfile() {
     try {
       await axios.post(`${backendURL}/api/user/createprofile`, data, {
         headers: {
-          'Content-Type': 'multipart/form-data'
-        }
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${token}`, // ✅ Send token to backend
+        },
       });
       alert('Profile created successfully');
+      window.location.href = '/home'; // Redirect after success
     } catch (error) {
-      alert('Error creating profile');
+      console.error('Error creating profile:', error.response?.data || error.message);
+      alert(error.response?.data?.message || 'Error creating profile');
     }
   };
-
-  console.log( `${backendURL}/api/user/createprofile`);
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center px-4 py-10">

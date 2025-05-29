@@ -13,6 +13,8 @@ const userSchema = new mongoose.Schema({
     company: { type: String },
 }, { timestamps: true });
 
+userSchema.index({ name: 'text' }); // Add text index for faster search
+
 
 const userModel = mongoose.models.user || mongoose.model("user", userSchema)
 

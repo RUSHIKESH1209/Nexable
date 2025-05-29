@@ -3,9 +3,14 @@ import axios from 'axios';
 import { motion } from 'framer-motion';
 import { ShopContext } from '../context/ShopContext';
 
-
 function Login() {
-  const { name, setName, email, setEmail, password, setPassword } = useContext(ShopContext);
+  const {
+    name, setName,
+    email, setEmail,
+    password, setPassword,
+    token, setToken
+  } = useContext(ShopContext);
+
   const [isSignup, setIsSignup] = useState(false);
   const backendURL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 
@@ -13,14 +18,19 @@ function Login() {
     e.preventDefault();
     const url = isSignup ? `${backendURL}/api/user/register` : `${backendURL}/api/user/login`;
 
-    // Prepare form data object for request
     const formData = isSignup
       ? { name, email, password }
       : { email, password };
 
     try {
       const res = await axios.post(url, formData);
-      localStorage.setItem('token', res.data.token);
+      const receivedToken = res.data.token;
+
+      // Save token in localStorage and context
+      localStorage.setItem('token', receivedToken);
+      setToken(receivedToken);
+
+      // Redirect
       window.location.href = isSignup ? '/createprofile' : '/home';
     } catch (err) {
       alert(err.response?.data?.message || 'Something went wrong');

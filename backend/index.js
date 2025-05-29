@@ -4,9 +4,10 @@ import 'dotenv/config'
 import connectDB from './config/mongodb.js';
 import userRouter from './routes/userRoute.js';
 import connectCloudinary from './config/cloudinary.js';
+import postRouter from './routes/postRouter.js';
 const app = express()
 const port = process.env.PORT
-connectDB()
+await connectDB();
 connectCloudinary()
 
 app.use(express.json())
@@ -15,6 +16,7 @@ app.use(express.urlencoded({ extended: true }));
 
 
 app.use("/api/user", userRouter);
+app.use("/api/post", postRouter);
 
 app.get('/', (req, res) => {
     res.send("heelow")

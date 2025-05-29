@@ -3,6 +3,8 @@ import React, { createContext, useState } from "react";
 export const ShopContext = createContext();
 
 const ShopContextProvider = ({ children }) => {
+  const [token, setToken] = useState(() => localStorage.getItem('token') || '');
+
   // Login states (from before)
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -19,6 +21,8 @@ const ShopContextProvider = ({ children }) => {
   const [company, setCompany] = useState('');
 
   const value = {
+    token, setToken,
+
     // Login
     name, setName,
     email, setEmail,

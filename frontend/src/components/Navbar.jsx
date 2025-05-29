@@ -1,6 +1,7 @@
 import React from 'react';
 import { FaHome, FaUserFriends, FaBell, FaUser, FaSearch } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
+import Search from './Search';
 
 const Navbar = () => {
   return (
@@ -11,15 +12,7 @@ const Navbar = () => {
       </div>
 
       {/* Search bar */}
-      <div className="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-md w-[40%] max-w-md">
-        <FaSearch className="text-gray-500 text-sm" />
-        <input
-          type="text"
-          placeholder="Search"
-          className="bg-transparent outline-none w-full text-sm"
-        />
-      </div>
-
+      <Search></Search>
       {/* Navigation links with icons and labels */}
       <div className="flex items-center gap-6 text-[#1F7D53] text-sm font-medium">
         <Link to="/home" className="flex items-center gap-2 hover:text-[#EC5228] transition-colors">
