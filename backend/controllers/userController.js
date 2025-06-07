@@ -163,4 +163,60 @@ const showProfile = async (req, res) => {
 };
 
 
-export { loginUser, registerUser, CreateProfile , showProfile};
+const showUserProfile = async (req, res) => {
+  try {
+    const userId = req.params.id; // get userId from request params
+
+    if (!userId) {
+      return res.status(400).json({ success: false, message: "User ID is required" });
+    }
+
+    // Find user by ID, exclude password field for security
+    const user = await userModel.findById(userId).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    return res.status(200).json({ success: true, user });
+  } catch (error) {
+    console.error("Show User Profile Error:", error);
+    return res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+}
+
+
+const updateConnections = async (req,res) => {
+
+  try {
+    const userId = req.user?.id; // get userId from auth middleware
+    const { connectionId } = req.body; // get connectionId from request body
+
+    if (!userId || !connectionId) {
+      return res.status(400).json({ success: false, message: "User ID and Connection ID are required" });
+    }
+
+    const user = await userModel.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // Add connection if it doesn't exist
+    if (!user.connections.includes(connectionId)) {
+      user.connections.push(connectionId);
+      await user.save();
+      return res.status(200).json({ success: true, message: "Connection added successfully", user });
+    } else {
+      // Remove connection if it already exists
+      user.connections = user.connections.filter(id => id !== connectionId);
+      await user.save();
+      return res.status(200).json({ success: true, message: "Connection removed successfully", user });
+    }
+  } catch (error) {
+    console.error("Update Connections Error:", error);
+    return res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+}
+  
+
+export { loginUser, registerUser, CreateProfile , showProfile ,showUserProfile ,updateConnections};

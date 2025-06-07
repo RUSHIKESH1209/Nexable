@@ -8,141 +8,136 @@ const Home_posts = () => {
 
   const [posts, setPosts] = useState([]);
   const [userInfoMap, setUserInfoMap] = useState({});
+  const [currentUser, setCurrentUser] = useState(null);
+  const [likedPosts, setLikedPosts] = useState(new Set());
   const [commentBoxes, setCommentBoxes] = useState({});
   const [newComments, setNewComments] = useState({});
-  const [likedPosts, setLikedPosts] = useState(new Set());
-  const [visibleComments, setVisibleComments] = useState({});
+  const [visibleCount, setVisibleCount] = useState(2);
+
+  const token = localStorage.getItem('token');
 
   useEffect(() => {
-    const fetchPosts = async () => {
+    const fetchPostsAndUsers = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get(`${backendURL}/api/post/posts`, {
+        const { data: postData } = await axios.get(`${backendURL}/api/post/posts`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        const postsData = response.data.posts;
-        setPosts(postsData);
+        setPosts(postData.posts || []);
 
-        // Set liked posts
-        const currentUserId = JSON.parse(atob(token.split('.')[1])).id;
-        const likedSet = new Set();
-        postsData.forEach((post) => {
-          if (post.likes.includes(currentUserId)) {
-            likedSet.add(post._id);
-          }
-        });
-        setLikedPosts(likedSet);
-
-        // Fetch all user info (post owners + comment authors)
         const userIds = new Set();
-        postsData.forEach((post) => {
+        postData.posts.forEach(post => {
           userIds.add(post.userId);
-          post.comments.forEach((cmt) => userIds.add(cmt.userId));
+          post.comments.forEach(c => userIds.add(c.userId));
         });
 
         const userMap = {};
-        await Promise.all(
-          [...userIds].map(async (id) => {
-            try {
-              const userRes = await axios.get(`${backendURL}/api/user/profile?id=${id}`, {
-                headers: { Authorization: `Bearer ${token}` },
-              });
-              userMap[id] = userRes.data.user;
-            } catch (err) {
-              console.error(`Error fetching user ${id}:`, err);
-            }
-          })
-        );
+        for (const id of userIds) {
+          const res = await axios.get(`${backendURL}/api/user/profile/${id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          userMap[id] = res.data.user;
+        }
+
+        const currentUserId = JSON.parse(atob(token.split('.')[1])).id;
+        if (!userMap[currentUserId]) {
+          const meRes = await axios.get(`${backendURL}/api/user/profile/${currentUserId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          userMap[currentUserId] = meRes.data.user;
+          setCurrentUser(meRes.data.user);
+        } else {
+          setCurrentUser(userMap[currentUserId]);
+        }
 
         setUserInfoMap(userMap);
-      } catch (error) {
-        console.error('Error fetching posts:', error);
+      } catch (err) {
+        console.error('Error fetching posts or users:', err);
       }
     };
 
-    fetchPosts();
+    fetchPostsAndUsers();
   }, []);
 
   const handleLike = async (postId) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post(
-        `${backendURL}/api/post/postlikes/${postId}`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
+      await axios.post(`${backendURL}/api/post/like/${postId}`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setLikedPosts(prev =>
+        new Set(prev.has(postId) ? [...prev].filter(id => id !== postId) : [...prev, postId])
       );
 
-      const { likesCount, liked } = response.data;
-
-      setPosts((prevPosts) =>
-        prevPosts.map((post) =>
+      setPosts(prev =>
+        prev.map(post =>
           post._id === postId
-            ? { ...post, likes: Array(likesCount).fill('like') }
+            ? {
+                ...post,
+                likes: likedPosts.has(postId)
+                  ? post.likes.filter(id => id !== currentUser?._id)
+                  : [...post.likes, currentUser?._id],
+              }
             : post
         )
       );
-
-      setLikedPosts((prev) => {
-        const newSet = new Set(prev);
-        if (liked) {
-          newSet.add(postId);
-        } else {
-          newSet.delete(postId);
-        }
-        return newSet;
-      });
-    } catch (error) {
-      console.error('Error liking/unliking post:', error);
+    } catch (err) {
+      console.error('Failed to like post', err);
     }
   };
 
   const toggleComments = (postId) => {
-    setCommentBoxes((prev) => ({ ...prev, [postId]: !prev[postId] }));
-    setVisibleComments((prev) => ({ ...prev, [postId]: 5 }));
+    setCommentBoxes(prev => ({ ...prev, [postId]: !prev[postId] }));
   };
 
-  const handleSeeMore = (postId) => {
-    setVisibleComments((prev) => ({
-      ...prev,
-      [postId]: (prev[postId] || 5) + 5,
-    }));
+  const handleSeeMore = () => {
+    setVisibleCount(prev => prev + 3);
   };
 
   const handleAddComment = async (postId) => {
-    const token = localStorage.getItem('token');
-    const comment = newComments[postId];
-    if (!comment) return;
+    const text = newComments[postId];
+    if (!text?.trim()) return;
 
     try {
-      const response = await axios.post(
+      await axios.post(
         `${backendURL}/api/post/comment/${postId}`,
-        { text: comment },
+        { text },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      const newComment = response.data.comment;
+      const userId = JSON.parse(atob(token.split('.')[1])).id;
 
-      setPosts((prevPosts) =>
-        prevPosts.map((post) =>
-          post._id === postId
-            ? { ...post, comments: [...post.comments, newComment] }
-            : post
-        )
+      const updatedPosts = posts.map(post =>
+        post._id === postId
+          ? {
+              ...post,
+              comments: [
+                ...post.comments,
+                {
+                  userId,
+                  text,
+                  createdAt: new Date().toISOString(),
+                },
+              ],
+            }
+          : post
       );
 
-      setNewComments((prev) => ({ ...prev, [postId]: '' }));
-    } catch (error) {
-      console.error('Error adding comment:', error);
+      if (!userInfoMap[userId] && currentUser) {
+        setUserInfoMap(prev => ({ ...prev, [userId]: currentUser }));
+      }
+
+      setPosts(updatedPosts);
+      setNewComments(prev => ({ ...prev, [postId]: '' }));
+    } catch (err) {
+      console.error('Failed to add comment:', err);
     }
   };
 
   return (
-    <div className="flex flex-col gap-6 p-4 bg-gray-100 min-h-screen">
+    <div className="space-y-8">
       {posts.map((post) => {
         const user = userInfoMap[post.userId] || {};
-        const visibleCount = visibleComments[post._id] || 5;
-
         return (
           <div
             key={post._id}
@@ -212,17 +207,15 @@ const Home_posts = () => {
                   );
                 })}
 
-                {/* See More Button */}
                 {post.comments.length > visibleCount && (
                   <button
-                    onClick={() => handleSeeMore(post._id)}
+                    onClick={handleSeeMore}
                     className="text-sm text-blue-600 hover:underline ml-12"
                   >
                     See more comments
                   </button>
                 )}
 
-                {/* Add Comment Box */}
                 <div className="flex gap-3 items-center mt-2">
                   <input
                     type="text"

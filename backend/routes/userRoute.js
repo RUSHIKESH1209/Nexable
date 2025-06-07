@@ -2,9 +2,10 @@ import express from "express";
 const userRouter = express.Router();
 import upload from "../middleware/multer.js";
 
-import { loginUser, registerUser, CreateProfile ,showProfile } from "../controllers/userController.js";
+import { loginUser, registerUser, CreateProfile ,showProfile, showUserProfile, updateConnections } from "../controllers/userController.js";
 import authUser from "../middleware/auth.js";
 import userModel from "../models/userModel.js";
+import { getAllUsers } from "../controllers/suggestions.js";
 
 userRouter.post("/register", registerUser);
 userRouter.post("/login", loginUser);
@@ -16,6 +17,7 @@ userRouter.post(
 );
 
 userRouter.get("/profile", authUser, showProfile);
+userRouter.get("/profile/:id", authUser, showUserProfile); // Show user profile by ID
 
 
 userRouter.get('/search', async (req, res) => {
@@ -36,6 +38,11 @@ userRouter.get('/search', async (req, res) => {
   }
 });
 
+
+
+userRouter.get('/all', authUser, getAllUsers);
+
+userRouter.post('/updateConnections', authUser ,updateConnections)
 
 
 

@@ -137,7 +137,7 @@ const addComment = async (req, res) => {
 };
 
 const getComments = async (req, res) => {
-  try {
+  try { 
     const { postId } = req.params;
 
     const post = await postModel.findById(postId);

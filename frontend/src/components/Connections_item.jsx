@@ -4,37 +4,30 @@ import { FaTrash, FaEnvelope } from 'react-icons/fa';
 
 const Connections_item = () => {
   const [connections, setConnections] = useState([]);
+  const backendURL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+  const token = localStorage.getItem('token');
 
   useEffect(() => {
     const fetchConnections = async () => {
       try {
-        // Uncomment this when backend is ready
-        // const response = await axios.get('/api/user/connections', {
-        //   withCredentials: true,
-        // });
-        // setConnections(response.data);
+        // Step 1: Get logged-in user's profile (with connection IDs)
+        const profileRes = await axios.get(`${backendURL}/api/user/profile`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-        // Dummy data
-        setConnections([
-          {
-            id: 1,
-            name: 'Riya Kapoor',
-            username: 'riya.kapoor',
-            profilePic: '/profilepic.png',
-          },
-          {
-            id: 2,
-            name: 'Arjun Mehta',
-            username: 'arjun.m',
-            profilePic: '/login.png',
-          },
-          {
-            id: 3,
-            name: 'Simran Gupta',
-            username: 'simran.g',
-            profilePic: '/profilepic.png',
-          },
-        ]);
+        const connectionIds = profileRes.data.user.connections || [];
+
+        // Step 2: For each connectionId, fetch full user profile
+        const connectionData = await Promise.all(
+          connectionIds.map(async (id) => {
+            const userRes = await axios.get(`${backendURL}/api/user/profile/${id}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            return userRes.data.user;
+          })
+        );
+
+        setConnections(connectionData);
       } catch (error) {
         console.error('Failed to fetch connections:', error);
       }
@@ -43,21 +36,24 @@ const Connections_item = () => {
     fetchConnections();
   }, []);
 
-  const handleRemove = async (userId) => {
+  const handleRemove = async (connectionId) => {
     try {
-      // Uncomment when backend is ready
-      // await axios.delete(`/api/user/connections/${userId}`, {
-      //   withCredentials: true,
-      // });
+      await axios.post(
+        `${backendURL}/api/user/updateConnections`,
+        { connectionId },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
-      setConnections((prev) => prev.filter((user) => user.id !== userId));
+      setConnections((prev) => prev.filter((user) => user._id !== connectionId));
     } catch (error) {
       console.error('Error removing connection:', error);
     }
   };
 
   const handleMessage = (userId) => {
-    console.log('Message user with ID:', userId);
+    window.location.href = `/chat/${userId}`;
   };
 
   return (
@@ -67,7 +63,7 @@ const Connections_item = () => {
         <div className="flex flex-col gap-4">
           {connections.map((user) => (
             <div
-              key={user.id}
+              key={user._id}
               className="flex items-center justify-between gap-4 p-2 rounded-md hover:bg-[#fbe6df] transition"
             >
               <div className="flex items-center gap-3">
@@ -78,19 +74,19 @@ const Connections_item = () => {
                 />
                 <div>
                   <p className="font-medium text-sm text-[#EC5228]">{user.name}</p>
-                  <p className="text-xs text-gray-500">@{user.username}</p>
+                  <p className="text-xs text-gray-500">{user.email}</p>
                 </div>
               </div>
 
               <div className="flex gap-2">
                 <button
-                  onClick={() => handleMessage(user.id)}
+                  onClick={() => handleMessage(user._id)}
                   className="bg-green-100 text-green-800 px-3 py-1 rounded-md text-xs flex items-center gap-2 hover:bg-green-200 transition-colors"
                 >
                   <FaEnvelope className="text-sm" /> Message
                 </button>
                 <button
-                  onClick={() => handleRemove(user.id)}
+                  onClick={() => handleRemove(user._id)}
                   className="bg-red-100 text-red-700 px-3 py-1 rounded-md text-xs flex items-center gap-2 hover:bg-red-200 transition-colors"
                 >
                   <FaTrash className="text-sm" /> Remove

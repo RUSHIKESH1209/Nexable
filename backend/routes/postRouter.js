@@ -9,6 +9,7 @@ postRouter.post("/create", authUser, upload.fields([{ name: "postPic", maxCount:
 postRouter.get("/posts", authUser, posts)
 postRouter.post("/postlikes/:postId", authUser, postLikes);
 postRouter.post("/comment/:postId", authUser, addComment);
-postRouter.get("/post/:postId", authUser, getComments);
+postRouter.get("/getcomments/:postId", authUser, getComments);
 
 export default postRouter;
+ 

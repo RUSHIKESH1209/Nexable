@@ -7,6 +7,7 @@ import Profile from './pages/Profile'
 import Login from './pages/Login'
 import CreateProfile from './pages/Createprofile'
 import Navbar from './components/Navbar'
+import Chat from './pages/Chat'
 
 const App = () => {
   return (
@@ -20,7 +21,7 @@ const App = () => {
         <Route path='/connections' element={<Connections></Connections>}></Route>
         <Route path='/notifications' element={<Notifications></Notifications>}></Route>
         <Route path='/profile' element={<Profile></Profile>}></Route>
-
+        <Route path="/chat/:receiverId" element={<Chat/>} />
       </Routes>
     </>
 

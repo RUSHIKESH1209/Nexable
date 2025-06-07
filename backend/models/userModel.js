@@ -11,6 +11,8 @@ const userSchema = new mongoose.Schema({
     skills: [{ type: String }], // Array of skills
     position: { type: String },
     company: { type: String },
+    connections: [{ type: String }],
+    
 }, { timestamps: true });
 
 userSchema.index({ name: 'text' }); // Add text index for faster search
