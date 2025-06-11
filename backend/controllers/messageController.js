@@ -1,4 +1,5 @@
 import Message from '../models/messagemodel.js';
+import notificationModel from '../models/notificationModel.js';
 
 export const sendMessage = async (req, res) => {
   try {
@@ -6,11 +7,24 @@ export const sendMessage = async (req, res) => {
     const { receiver, message } = req.body;
 
     const newMsg = await Message.create({ sender, receiver, message });
+
+    // Avoid notifying yourself
+    if (receiver !== sender) {
+      await notificationModel.create({
+        recipient: receiver,
+        sender,
+        type: 'message',
+        text: message,
+      });
+    }
+
     res.status(201).json(newMsg);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Failed to send message' });
   }
 };
+
 
 export const getMessages = async (req, res) => {
   try {

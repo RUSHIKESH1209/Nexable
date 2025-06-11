@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaImage } from 'react-icons/fa';
 import axios from 'axios';
+import { motion } from 'framer-motion';
 
 const Home_createpost = () => {
   const backendURL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
@@ -9,19 +10,15 @@ const Home_createpost = () => {
   const [preview, setPreview] = useState(null);
   const [caption, setCaption] = useState('');
   const [loading, setLoading] = useState(false);
-  const [profilePic, setProfilePic] = useState('/profilepic.png'); // default image
+  const [profilePic, setProfilePic] = useState('/profilepic.png');
 
-  // Fetch user profile on mount
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const token = localStorage.getItem('token');
         const response = await axios.get(`${backendURL}/api/user/profile`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
-
         if (response.data.success) {
           setProfilePic(response.data.user.profilePic || '/profilepic.png');
         }
@@ -29,7 +26,6 @@ const Home_createpost = () => {
         console.error('Error fetching profile:', error);
       }
     };
-
     fetchProfile();
   }, [backendURL]);
 
@@ -43,7 +39,6 @@ const Home_createpost = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!caption && !selectedFile) return;
 
     setLoading(true);
@@ -53,16 +48,10 @@ const Home_createpost = () => {
       if (selectedFile) {
         formData.append('postPic', selectedFile);
       }
-
       const token = localStorage.getItem('token');
-
       const response = await axios.post(`${backendURL}/api/post/create`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${token}` },
       });
-
       if (response.data.success) {
         console.log('Post created:', response.data.post);
         setCaption('');
@@ -79,49 +68,77 @@ const Home_createpost = () => {
   };
 
   return (
-    <div className="bg-white rounded-xl p-4 min-h-[15vh] flex flex-col justify-between border border-[#255F38]">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-        <div className="flex items-start gap-3">
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, delay: 0.1 }}
+      className="bg-white rounded-[30px] p-6 shadow-2xl flex flex-col"
+    >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        {/* Top Section: Profile Pic & Caption */}
+        <div className="flex items-start gap-4">
           <img
             src={profilePic}
             alt="User"
-            className="w-10 h-10 rounded-full object-cover border border-[#1F7D53]"
+            className="w-12 h-12 rounded-full object-cover border-2 border-[#7494ec]"
           />
           <textarea
-            placeholder="Write a caption..."
+            placeholder="What's on your mind?"
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
-            className="flex-1 border border-gray-300 rounded-md p-2 text-sm resize-none"
-            rows={2}
+            className="flex-1 bg-[#f9f9f9] rounded-xl p-3 text-base resize-none outline-none focus:ring-2 focus:ring-[#7494ec] placeholder-[#888]"
+            rows={2} // Reduced rows for compactness
           />
-          <label className="cursor-pointer text-[#EC5228] text-4xl">
-            <FaImage />
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-              className="hidden"
-            />
-          </label>
         </div>
 
+        {/* Image Preview */}
         {preview && (
-          <img
-            src={preview}
-            alt="Selected preview"
-            className="rounded-md border border-[#1F7D53] max-h-[70vh] max-w-full object-contain"
-          />
+          <div className="relative mt-2"> {/* Added margin top */}
+            <img
+              src={preview}
+              alt="Selected preview"
+              className="rounded-xl max-h-[25vh] w-full object-cover border-2 border-[#7494ec] shadow-md" // Reduced max-height
+            />
+            <button
+              type="button"
+              onClick={() => { setSelectedFile(null); setPreview(null); }}
+              className="absolute top-2 right-2 bg-black bg-opacity-50 text-white rounded-full p-1 text-xs hover:bg-opacity-75"
+              aria-label="Remove image"
+            >
+              &times;
+            </button>
+          </div>
         )}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-[#EC5228] text-white px-4 py-2 rounded-md text-sm hover:bg-opacity-90 self-end"
-        >
-          {loading ? 'Posting...' : 'Post'}
-        </button>
+        {/* Bottom Section: Upload Button & Post Button */}
+        <div className="flex items-center justify-between mt-4"> {/* Adjusted margin top */}
+          <label
+            htmlFor="image-upload"
+            className="flex items-center text-[#7494ec] text-lg cursor-pointer hover:text-[#607bb0] transition px-3 py-2 rounded-lg bg-[#f9f9f9] hover:bg-[#eee]"
+          >
+            <FaImage className="text-xl mr-2" />
+            <span className="text-sm font-medium hidden sm:inline">Add Image</span> {/* Hide text on very small screens */}
+          </label>
+          <input
+            id="image-upload"
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
+            className="hidden"
+          />
+
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            type="submit"
+            disabled={loading || (!caption && !selectedFile)}
+            className="bg-[#7494ec] text-white px-5 py-2.5 rounded-lg text-base font-semibold hover:bg-[#607bb0] transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed" // Slightly smaller button
+          >
+            {loading ? 'Posting...' : 'Share'}
+          </motion.button>
+        </div>
       </form>
-    </div>
+    </motion.div>
   );
 };
 

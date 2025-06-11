@@ -3,19 +3,31 @@ import validator from "validator";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { v2 as cloudinary } from "cloudinary";
+import { Readable } from "stream";
 
 // Create JWT Token with Expiry
 const createToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "7d" });
 };
 
-// Upload image to Cloudinary
+// Upload image from buffer to Cloudinary
 async function uploadSingleFile(file) {
   if (!file) return null;
-  const result = await cloudinary.uploader.upload(file.path, {
-    resource_type: "image",
+
+  const bufferStream = new Readable();
+  bufferStream.push(file.buffer);
+  bufferStream.push(null);
+
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      { resource_type: "image" },
+      (error, result) => {
+        if (error) return reject(error);
+        resolve(result.secure_url);
+      }
+    );
+    bufferStream.pipe(uploadStream);
   });
-  return result.secure_url;
 }
 
 // Register User
@@ -40,18 +52,15 @@ const registerUser = async (req, res) => {
       return res.status(409).json({ success: false, message: "User already exists" });
     }
 
-    if (
-      !validator.isStrongPassword(password, {
-        minLength: 8,
-        minUppercase: 1,
-        minNumbers: 1,
-        minSymbols: 1,
-      })
-    ) {
+    if (!validator.isStrongPassword(password, {
+      minLength: 8,
+      minUppercase: 1,
+      minNumbers: 1,
+      minSymbols: 1,
+    })) {
       return res.status(400).json({
         success: false,
-        message:
-          "Password must be at least 8 characters, include an uppercase letter, a number, and a special character.",
+        message: "Password must be at least 8 characters, include an uppercase letter, a number, and a special character.",
       });
     }
 
@@ -100,7 +109,7 @@ const loginUser = async (req, res) => {
   }
 };
 
-// Create / Update Profile using Token
+// Create / Update Profile
 const CreateProfile = async (req, res) => {
   try {
     const userId = req.user?.id;
@@ -116,7 +125,7 @@ const CreateProfile = async (req, res) => {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    const profilePicFile = req.files?.profilePic ? req.files.profilePic[0] : null;
+    const profilePicFile = req.files?.profilePic?.[0] || null;
     const imageUrl = await uploadSingleFile(profilePicFile);
 
     if (imageUrl) user.profilePic = imageUrl;
@@ -140,15 +149,15 @@ const CreateProfile = async (req, res) => {
   }
 };
 
+// Show own profile
 const showProfile = async (req, res) => {
   try {
-    const userId = req.user?.id; // get userId from auth middleware
+    const userId = req.user?.id;
 
     if (!userId) {
       return res.status(401).json({ success: false, message: "Unauthorized" });
     }
 
-    // Find user by ID, exclude password field for security
     const user = await userModel.findById(userId).select("-password");
 
     if (!user) {
@@ -162,16 +171,15 @@ const showProfile = async (req, res) => {
   }
 };
 
-
+// Show other user profile by ID
 const showUserProfile = async (req, res) => {
   try {
-    const userId = req.params.id; // get userId from request params
+    const userId = req.params.id;
 
     if (!userId) {
       return res.status(400).json({ success: false, message: "User ID is required" });
     }
 
-    // Find user by ID, exclude password field for security
     const user = await userModel.findById(userId).select("-password");
 
     if (!user) {
@@ -183,14 +191,13 @@ const showUserProfile = async (req, res) => {
     console.error("Show User Profile Error:", error);
     return res.status(500).json({ success: false, message: "Internal Server Error" });
   }
-}
+};
 
-
-const updateConnections = async (req,res) => {
-
+// Add/remove connection
+const updateConnections = async (req, res) => {
   try {
-    const userId = req.user?.id; // get userId from auth middleware
-    const { connectionId } = req.body; // get connectionId from request body
+    const userId = req.user?.id;
+    const { connectionId } = req.body;
 
     if (!userId || !connectionId) {
       return res.status(400).json({ success: false, message: "User ID and Connection ID are required" });
@@ -201,13 +208,11 @@ const updateConnections = async (req,res) => {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    // Add connection if it doesn't exist
     if (!user.connections.includes(connectionId)) {
       user.connections.push(connectionId);
       await user.save();
       return res.status(200).json({ success: true, message: "Connection added successfully", user });
     } else {
-      // Remove connection if it already exists
       user.connections = user.connections.filter(id => id !== connectionId);
       await user.save();
       return res.status(200).json({ success: true, message: "Connection removed successfully", user });
@@ -216,7 +221,13 @@ const updateConnections = async (req,res) => {
     console.error("Update Connections Error:", error);
     return res.status(500).json({ success: false, message: "Internal Server Error" });
   }
-}
-  
+};
 
-export { loginUser, registerUser, CreateProfile , showProfile ,showUserProfile ,updateConnections};
+export {
+  loginUser,
+  registerUser,
+  CreateProfile,
+  showProfile,
+  showUserProfile,
+  updateConnections
+};

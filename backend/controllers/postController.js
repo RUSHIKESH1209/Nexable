@@ -1,13 +1,25 @@
 import postModel from "../models/postModel.js";
 import { v2 as cloudinary } from "cloudinary";
+import notificationModel from '../models/notificationModel.js';
 
 // Upload image to Cloudinary
 const uploadToCloudinary = async (file) => {
-  if (!file) return null;
-  const result = await cloudinary.uploader.upload(file.path, {
-    resource_type: "image",
+  if (!file || !file.buffer) throw new Error("Invalid file or missing buffer");
+
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { resource_type: 'image' },
+      (error, result) => {
+        if (error) {
+          console.error("Cloudinary Upload Error:", error);
+          return reject(error);
+        }
+        resolve(result.secure_url);
+      }
+    );
+
+    stream.end(file.buffer);
   });
-  return result.secure_url;
 };
 
 const createPost = async (req, res) => {
@@ -19,13 +31,16 @@ const createPost = async (req, res) => {
       return res.status(401).json({ success: false, message: "Unauthorized" });
     }
 
-    const postPicFile = req.files?.postPic ? req.files.postPic[0] : null;
-    const imageUrl = await uploadToCloudinary(postPicFile);
+    const postPicFile = req.file || null;
+    console.log("File received:", postPicFile);
+    console.log("Buffer exists:", postPicFile?.buffer?.length > 0);
+
+    const imageUrl = postPicFile ? await uploadToCloudinary(postPicFile) : null;
 
     const newPost = await postModel.create({
       userId,
       caption,
-      image: imageUrl || null,
+      image: imageUrl,
     });
 
     return res.status(201).json({
@@ -41,26 +56,27 @@ const createPost = async (req, res) => {
 
 
 const posts = async (req, res) => {
-    try {
-        
-        const allPosts = await postModel.find({  }).sort({ createdAt: -1 });
-        if (!allPosts || allPosts.length === 0) {
-            return res.status(404).json({ success: false, message: "No posts found" });
-        }
-        return res.status(200).json({
-            success: true,
-            message: "Posts fetched successfully",
-            posts: allPosts,
-        });
-    
+  try {
 
-        
-    } catch (error) {
-        console.error("Fetch Posts Error:", error);
-        return res.status(500).json({ success: false, message: "Internal Server Error" });
+    const allPosts = await postModel.find({}).sort({ createdAt: -1 });
+    if (!allPosts || allPosts.length === 0) {
+      return res.status(404).json({ success: false, message: "No posts found" });
     }
+    return res.status(200).json({
+      success: true,
+      message: "Posts fetched successfully",
+      posts: allPosts,
+    });
+
+
+
+  } catch (error) {
+    console.error("Fetch Posts Error:", error);
+    return res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
 
 }
+
 
 
 const postLikes = async (req, res) => {
@@ -74,15 +90,31 @@ const postLikes = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Post not found' });
     }
 
-    // Check if user has already liked the post
     const hasLiked = post.likes.includes(userId);
 
     if (hasLiked) {
-      // Unlike the post
       post.likes = post.likes.filter((id) => id.toString() !== userId);
-    } else {
-      // Like the post
+
+      await notificationModel.findOneAndDelete({
+        recipient: post.userId,
+        sender: userId,
+        type: 'like',
+        postId,
+      })
+    }
+
+    else {
       post.likes.push(userId);
+
+      // Create notification only if it's not the user's own post
+      if (post.userId.toString() !== userId) {
+        await notificationModel.create({
+          recipient: post.userId,
+          sender: userId,
+          type: 'like',
+          postId,
+        });
+      }
     }
 
     await post.save();
@@ -99,6 +131,7 @@ const postLikes = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Internal Server Error' });
   }
 };
+
 
 
 const addComment = async (req, res) => {
@@ -125,11 +158,23 @@ const addComment = async (req, res) => {
     post.comments.push(comment);
     await post.save();
 
+    // Create comment notification if not the user's own post
+    if (post.userId.toString() !== userId) {
+      await notificationModel.create({
+        recipient: post.userId,
+        sender: userId,
+        type: 'comment',
+        postId,
+        text,
+      });
+    }
+
     return res.status(200).json({
       success: true,
       message: "Comment added successfully",
       comment,
     });
+
   } catch (error) {
     console.error("Add Comment Error:", error);
     return res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -137,7 +182,7 @@ const addComment = async (req, res) => {
 };
 
 const getComments = async (req, res) => {
-  try { 
+  try {
     const { postId } = req.params;
 
     const post = await postModel.findById(postId);
@@ -158,4 +203,4 @@ const getComments = async (req, res) => {
 
 
 
-export { createPost ,posts , postLikes ,addComment ,getComments};
+export { createPost, posts, postLikes, addComment, getComments };

@@ -12,9 +12,9 @@ const Home_posts = () => {
   const [likedPosts, setLikedPosts] = useState(new Set());
   const [commentBoxes, setCommentBoxes] = useState({});
   const [newComments, setNewComments] = useState({});
-  const [visibleCount, setVisibleCount] = useState(2);
 
   const token = localStorage.getItem('token');
+  const currentUserId = token ? JSON.parse(atob(token.split('.')[1])).id : null;
 
   useEffect(() => {
     const fetchPostsAndUsers = async () => {
@@ -23,10 +23,11 @@ const Home_posts = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        setPosts(postData.posts || []);
+        const posts = postData.posts || [];
+        setPosts(posts);
 
         const userIds = new Set();
-        postData.posts.forEach(post => {
+        posts.forEach(post => {
           userIds.add(post.userId);
           post.comments.forEach(c => userIds.add(c.userId));
         });
@@ -39,7 +40,6 @@ const Home_posts = () => {
           userMap[id] = res.data.user;
         }
 
-        const currentUserId = JSON.parse(atob(token.split('.')[1])).id;
         if (!userMap[currentUserId]) {
           const meRes = await axios.get(`${backendURL}/api/user/profile/${currentUserId}`, {
             headers: { Authorization: `Bearer ${token}` },
@@ -51,6 +51,14 @@ const Home_posts = () => {
         }
 
         setUserInfoMap(userMap);
+
+        const liked = new Set();
+        posts.forEach(post => {
+          if (post.likes.includes(currentUserId)) {
+            liked.add(post._id);
+          }
+        });
+        setLikedPosts(liked);
       } catch (err) {
         console.error('Error fetching posts or users:', err);
       }
@@ -61,23 +69,29 @@ const Home_posts = () => {
 
   const handleLike = async (postId) => {
     try {
-      await axios.post(`${backendURL}/api/post/like/${postId}`, {}, {
+      const isLiked = likedPosts.has(postId);
+
+      await axios.post(`${backendURL}/api/post/postlikes/${postId}`, {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      setLikedPosts(prev =>
-        new Set(prev.has(postId) ? [...prev].filter(id => id !== postId) : [...prev, postId])
-      );
+      const updatedLikedPosts = new Set(likedPosts);
+      if (isLiked) {
+        updatedLikedPosts.delete(postId);
+      } else {
+        updatedLikedPosts.add(postId);
+      }
+      setLikedPosts(updatedLikedPosts);
 
       setPosts(prev =>
         prev.map(post =>
           post._id === postId
             ? {
-                ...post,
-                likes: likedPosts.has(postId)
-                  ? post.likes.filter(id => id !== currentUser?._id)
-                  : [...post.likes, currentUser?._id],
-              }
+              ...post,
+              likes: isLiked
+                ? post.likes.filter(id => id !== currentUser?._id)
+                : [...post.likes, currentUser?._id],
+            }
             : post
         )
       );
@@ -88,10 +102,6 @@ const Home_posts = () => {
 
   const toggleComments = (postId) => {
     setCommentBoxes(prev => ({ ...prev, [postId]: !prev[postId] }));
-  };
-
-  const handleSeeMore = () => {
-    setVisibleCount(prev => prev + 3);
   };
 
   const handleAddComment = async (postId) => {
@@ -105,26 +115,24 @@ const Home_posts = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      const userId = JSON.parse(atob(token.split('.')[1])).id;
-
       const updatedPosts = posts.map(post =>
         post._id === postId
           ? {
-              ...post,
-              comments: [
-                ...post.comments,
-                {
-                  userId,
-                  text,
-                  createdAt: new Date().toISOString(),
-                },
-              ],
-            }
+            ...post,
+            comments: [
+              ...post.comments,
+              {
+                userId: currentUserId,
+                text,
+                createdAt: new Date().toISOString(),
+              },
+            ],
+          }
           : post
       );
 
-      if (!userInfoMap[userId] && currentUser) {
-        setUserInfoMap(prev => ({ ...prev, [userId]: currentUser }));
+      if (!userInfoMap[currentUserId] && currentUser) {
+        setUserInfoMap(prev => ({ ...prev, [currentUserId]: currentUser }));
       }
 
       setPosts(updatedPosts);
@@ -143,7 +151,6 @@ const Home_posts = () => {
             key={post._id}
             className="bg-white border border-gray-200 rounded-2xl p-6 shadow-md transition hover:shadow-lg"
           >
-            {/* User Info */}
             <div className="flex items-center gap-3 mb-4">
               <img
                 src={user.profilePic || '/profilepic.png'}
@@ -185,56 +192,56 @@ const Home_posts = () => {
               </button>
             </div>
 
-            {/* Comments Section */}
             {commentBoxes[post._id] && (
-              <div className="mt-4 space-y-2">
-                {post.comments.slice(0, visibleCount).map((cmt, idx) => {
-                  const commenter = userInfoMap[cmt.userId] || {};
-                  return (
-                    <div key={idx} className="flex gap-3 items-start">
-                      <img
-                        src={commenter.profilePic || '/profilepic.png'}
-                        alt="Commenter"
-                        className="w-8 h-8 rounded-full object-cover"
-                      />
-                      <div className="bg-green-50 p-2 rounded-xl border-l-4 border-green-300 flex-1">
-                        <span className="font-semibold text-sm text-gray-800">
-                          {commenter.name || 'User'}:
-                        </span>{' '}
-                        <span className="text-sm text-gray-700">{cmt.text}</span>
+              <div className="mt-5">
+                <div className="space-y-4 max-h-[250px] overflow-y-auto pr-2">
+                  {post.comments.map((cmt, idx) => {
+                    const commenter = userInfoMap[cmt.userId] || {};
+                    return (
+                      <div key={idx} className="flex gap-3 items-start">
+                        <img
+                          src={commenter.profilePic || '/profilepic.png'}
+                          alt="Commenter"
+                          className="w-8 h-8 rounded-full object-cover border border-green-500"
+                        />
+                        <div className="flex-1 bg-gray-50 p-3 rounded-2xl shadow-sm">
+                          <p className="text-sm">
+                            <span className="font-semibold text-gray-800">
+                              {commenter.name || 'User'}
+                            </span>
+                            <span className="ml-1 text-gray-700">{cmt.text}</span>
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
 
-                {post.comments.length > visibleCount && (
-                  <button
-                    onClick={handleSeeMore}
-                    className="text-sm text-blue-600 hover:underline ml-12"
-                  >
-                    See more comments
-                  </button>
-                )}
-
-                <div className="flex gap-3 items-center mt-2">
+                <div className="flex items-center gap-3 mt-4">
+                  <img
+                    src={currentUser?.profilePic || '/profilepic.png'}
+                    alt="You"
+                    className="w-8 h-8 rounded-full object-cover border border-gray-300"
+                  />
                   <input
                     type="text"
                     value={newComments[post._id] || ''}
                     onChange={(e) =>
                       setNewComments({ ...newComments, [post._id]: e.target.value })
                     }
-                    placeholder="Write a comment..."
-                    className="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                    placeholder="Add a comment..."
+                    className="flex-1 bg-white border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
                   />
                   <button
                     onClick={() => handleAddComment(post._id)}
-                    className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 transition"
+                    className="bg-green-600 text-white px-4 py-2 rounded-full text-sm hover:bg-green-700 transition"
                   >
                     Post
                   </button>
                 </div>
               </div>
             )}
+
           </div>
         );
       })}

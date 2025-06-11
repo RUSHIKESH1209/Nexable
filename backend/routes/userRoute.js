@@ -5,7 +5,7 @@ import upload from "../middleware/multer.js";
 import { loginUser, registerUser, CreateProfile ,showProfile, showUserProfile, updateConnections } from "../controllers/userController.js";
 import authUser from "../middleware/auth.js";
 import userModel from "../models/userModel.js";
-import { getAllUsers } from "../controllers/suggestions.js";
+import { getAllUsers, suggestUsers } from "../controllers/suggestions.js";
 
 userRouter.post("/register", registerUser);
 userRouter.post("/login", loginUser);
@@ -41,7 +41,7 @@ userRouter.get('/search', async (req, res) => {
 
 
 userRouter.get('/all', authUser, getAllUsers);
-
+userRouter.get('/suggestions' ,authUser ,suggestUsers)
 userRouter.post('/updateConnections', authUser ,updateConnections)
 
 

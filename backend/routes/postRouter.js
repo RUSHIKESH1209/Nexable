@@ -5,7 +5,7 @@ import  { addComment, createPost, getComments, postLikes, posts } from "../contr
 
 const postRouter = express.Router();
 
-postRouter.post("/create", authUser, upload.fields([{ name: "postPic", maxCount: 1 }]), createPost);
+postRouter.post("/create", authUser, upload.single("postPic"), createPost);
 postRouter.get("/posts", authUser, posts)
 postRouter.post("/postlikes/:postId", authUser, postLikes);
 postRouter.post("/comment/:postId", authUser, addComment);

@@ -1,31 +1,35 @@
-import React from 'react'
-import { Route, Routes } from 'react-router-dom'
-import Home from './pages/Home'
-import Connections from './pages/Connections'
-import Notifications from './pages/Notifications'
-import Profile from './pages/Profile'
-import Login from './pages/Login'
-import CreateProfile from './pages/Createprofile'
-import Navbar from './components/Navbar'
-import Chat from './pages/Chat'
+import React from 'react';
+import { Route, Routes, useLocation } from 'react-router-dom';
+import Home from './pages/Home';
+import Connections from './pages/Connections';
+import Notifications from './pages/Notifications';
+import Profile from './pages/Profile';
+import Login from './pages/Login';
+import CreateProfile from './pages/Createprofile';
+import Navbar from './components/Navbar';
+import Chat from './pages/Chat';
 
 const App = () => {
+  const location = useLocation();
+  const hideNavbarRoutes = ['/', '/createprofile'];
+
+  const shouldHideNavbar = hideNavbarRoutes.includes(location.pathname);
+
   return (
     <>
-      <Navbar></Navbar>
+      {!shouldHideNavbar && <Navbar />}
 
       <Routes>
-        <Route path='/' element={<Login></Login>}></Route>
-        <Route path='/createprofile' element={<CreateProfile></CreateProfile>}></Route>
-        <Route path='/home' element={<Home></Home>}></Route>
-        <Route path='/connections' element={<Connections></Connections>}></Route>
-        <Route path='/notifications' element={<Notifications></Notifications>}></Route>
-        <Route path='/profile' element={<Profile></Profile>}></Route>
-        <Route path="/chat/:receiverId" element={<Chat/>} />
+        <Route path='/' element={<Login />} />
+        <Route path='/createprofile' element={<CreateProfile />} />
+        <Route path='/home' element={<Home />} />
+        <Route path='/connections' element={<Connections />} />
+        <Route path='/notifications' element={<Notifications />} />
+        <Route path='/profile' element={<Profile />} />
+        <Route path='/chat/:receiverId' element={<Chat />} />
       </Routes>
     </>
+  );
+};
 
-  )
-}
-
-export default App
+export default App;
