@@ -1,33 +1,27 @@
-import React from 'react'
-import Notifications_item from '../components/Notifications_item'
-import Home_suggestions from '../components/Home_suggestions'
-import Home_profile from '../components/Home_profile'
+import React from 'react';
+import Notifications_item from '../components/Notifications_item';
+import Home_suggestions from '../components/Home_suggestions';
+import Home_profile from '../components/Home_profile';
 
 const Notifications = () => {
   return (
-    <div className="min-h-screen bg-[#EFEFEF] px-[5%] py-6 ">
-      <div className="flex flex-row gap-2">
-        <div className="w-[20%]  p-2">
-          <Home_profile></Home_profile>
+    <div className="min-h-screen bg-gradient-to-r from-[#e2e2e2] to-[#c9d6ff] p-4 md:p-6 lg:p-8">
+      <div className="flex flex-col md:flex-row gap-4 lg:gap-6 max-w-7xl mx-auto">
+
+        <div className="hidden lg:block lg:w-1/4">
+          <Home_profile />
         </div>
 
-        <div className="w-[55%] flex flex-col gap-2">
-          <div className=" p-2">
-            <Notifications_item></Notifications_item>
-          </div>
+        <div className="w-full md:w-2/3 lg:w-2/4 flex flex-col gap-6">
+          <Notifications_item />
         </div>
 
-        <div className="w-[20%] p-2">
-          <Home_suggestions></Home_suggestions>
+        <div className="hidden md:block md:w-1/3 lg:w-1/4">
+          <Home_suggestions />
         </div>
       </div>
     </div>
   );
 }
 
-export default Notifications
-
-
-
-
-
+export default Notifications;

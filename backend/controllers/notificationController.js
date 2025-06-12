@@ -1,5 +1,7 @@
 import notificationModel from '../models/notificationModel.js';
 
+
+// controller to get all notifications 
 export const getNotifications = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -14,6 +16,7 @@ export const getNotifications = async (req, res) => {
   }
 };
 
+// controller to mark a notification as read(not used)
 export const markAsRead = async (req, res) => {
   try {
     const notification = await notificationModel.findById(req.params.id);

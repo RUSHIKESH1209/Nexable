@@ -2,10 +2,9 @@
 
 body {
   font-family: 'Poppins', sans-serif;
-  background-color: #EFEFEF; /* Using direct hex for body background */
+  background-color: #EFEFEF; 
 }
 
-/* Custom scrollbar for better aesthetics (optional) */
 ::-webkit-scrollbar {
   width: 8px;
 }

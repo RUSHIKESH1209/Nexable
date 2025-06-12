@@ -1,6 +1,8 @@
 import Message from '../models/messagemodel.js';
 import notificationModel from '../models/notificationModel.js';
 
+
+// controller to send messages  also notification
 export const sendMessage = async (req, res) => {
   try {
     const sender = req.user.id;
@@ -8,8 +10,13 @@ export const sendMessage = async (req, res) => {
 
     const newMsg = await Message.create({ sender, receiver, message });
 
-    // Avoid notifying yourself
     if (receiver !== sender) {
+      await notificationModel.deleteMany({
+        recipient: receiver,
+        sender: sender,
+        type: 'message',
+      });
+
       await notificationModel.create({
         recipient: receiver,
         sender,
@@ -26,6 +33,7 @@ export const sendMessage = async (req, res) => {
 };
 
 
+// controller to get messages from the db 
 export const getMessages = async (req, res) => {
   try {
     const sender = req.user.id;

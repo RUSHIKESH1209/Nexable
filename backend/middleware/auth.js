@@ -1,5 +1,7 @@
 import jwt from 'jsonwebtoken';
 
+
+// just authuser middlerware and sever userId 
 const authUser = async (req, res, next) => {
   try {
     const token = req.headers.authorization?.split(' ')[1]; // Expecting: "Bearer <token>"
@@ -10,7 +12,6 @@ const authUser = async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Attach user ID to request object
     req.user = { id: decoded.id };  // Attach it in a standard place
 
     next();

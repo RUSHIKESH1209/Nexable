@@ -1,4 +1,4 @@
-// models/postModel.js
+
 import mongoose from 'mongoose';
 
 const postSchema = new mongoose.Schema(
@@ -12,7 +12,7 @@ const postSchema = new mongoose.Schema(
       type: String,
     },
     image: {
-      type: String, // URL from Cloudinary if uploaded
+      type: String, 
     },
     likes: [
       {
@@ -31,7 +31,7 @@ const postSchema = new mongoose.Schema(
       },
     ],
   },
-  { timestamps: true } // Adds createdAt and updatedAt automatically
+  { timestamps: true }
 );
 
 

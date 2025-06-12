@@ -2,7 +2,9 @@ import postModel from "../models/postModel.js";
 import { v2 as cloudinary } from "cloudinary";
 import notificationModel from '../models/notificationModel.js';
 
-// Upload image to Cloudinary
+
+
+// cloudinary upload function
 const uploadToCloudinary = async (file) => {
   if (!file || !file.buffer) throw new Error("Invalid file or missing buffer");
 
@@ -22,6 +24,8 @@ const uploadToCloudinary = async (file) => {
   });
 };
 
+
+// post creation controller 
 const createPost = async (req, res) => {
   try {
     const { caption } = req.body;
@@ -54,7 +58,7 @@ const createPost = async (req, res) => {
   }
 };
 
-
+// gives all the posts in db 
 const posts = async (req, res) => {
   try {
 
@@ -78,7 +82,34 @@ const posts = async (req, res) => {
 }
 
 
+// gives single post with its id 
+ const getSinglePost = async (req, res) => {
+  try {
+    const { id } = req.params;
 
+    if (!id) {
+      return res.status(400).json({ success: false, message: "Post ID is required" });
+    }
+
+    const post = await postModel.findById(id);
+
+    if (!post) {
+      return res.status(404).json({ success: false, message: "Post not found" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Post fetched successfully",
+      post,
+    });
+  } catch (error) {
+    console.error("Error fetching post:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+
+// manages post liking and unliking functionality also notificaton creation
 const postLikes = async (req, res) => {
   try {
     const userId = req.user?.id;
@@ -106,7 +137,6 @@ const postLikes = async (req, res) => {
     else {
       post.likes.push(userId);
 
-      // Create notification only if it's not the user's own post
       if (post.userId.toString() !== userId) {
         await notificationModel.create({
           recipient: post.userId,
@@ -134,6 +164,7 @@ const postLikes = async (req, res) => {
 
 
 
+// manages post comments  functionality also notificaton creation
 const addComment = async (req, res) => {
   try {
     const userId = req.user?.id;
@@ -158,7 +189,6 @@ const addComment = async (req, res) => {
     post.comments.push(comment);
     await post.save();
 
-    // Create comment notification if not the user's own post
     if (post.userId.toString() !== userId) {
       await notificationModel.create({
         recipient: post.userId,
@@ -181,6 +211,8 @@ const addComment = async (req, res) => {
   }
 };
 
+
+// serves allt the comments 
 const getComments = async (req, res) => {
   try {
     const { postId } = req.params;
@@ -203,4 +235,4 @@ const getComments = async (req, res) => {
 
 
 
-export { createPost, posts, postLikes, addComment, getComments };
+export { createPost, posts, postLikes, addComment, getComments ,getSinglePost };

@@ -1,9 +1,11 @@
 import userModel from "../models/userModel.js";
 import validator from "validator";
+import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { v2 as cloudinary } from "cloudinary";
 import { Readable } from "stream";
+import notificationModel from "../models/notificationModel.js";
 
 // Create JWT Token with Expiry
 const createToken = (id) => {
@@ -30,7 +32,7 @@ async function uploadSingleFile(file) {
   });
 }
 
-// Register User
+// Register User controller
 const registerUser = async (req, res) => {
   try {
     let { name, email, password } = req.body;
@@ -75,7 +77,7 @@ const registerUser = async (req, res) => {
   }
 };
 
-// Login User
+// Login User controller
 const loginUser = async (req, res) => {
   try {
     let { email, password } = req.body;
@@ -109,7 +111,7 @@ const loginUser = async (req, res) => {
   }
 };
 
-// Create / Update Profile
+// Create / Update Profile controller
 const CreateProfile = async (req, res) => {
   try {
     const userId = req.user?.id;
@@ -149,7 +151,7 @@ const CreateProfile = async (req, res) => {
   }
 };
 
-// Show own profile
+// Show my profile controller
 const showProfile = async (req, res) => {
   try {
     const userId = req.user?.id;
@@ -171,7 +173,7 @@ const showProfile = async (req, res) => {
   }
 };
 
-// Show other user profile by ID
+// show profile by users id 
 const showUserProfile = async (req, res) => {
   try {
     const userId = req.params.id;
@@ -193,7 +195,7 @@ const showUserProfile = async (req, res) => {
   }
 };
 
-// Add/remove connection
+//  connections and notification creation wwhen connected or disconnected
 const updateConnections = async (req, res) => {
   try {
     const userId = req.user?.id;
@@ -203,25 +205,79 @@ const updateConnections = async (req, res) => {
       return res.status(400).json({ success: false, message: "User ID and Connection ID are required" });
     }
 
+
+    if (!mongoose.Types.ObjectId.isValid(connectionId)) {
+      return res.status(400).json({ success: false, message: "Invalid connection ID" });
+    }
+
     const user = await userModel.findById(userId);
+
+
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    if (!user.connections.includes(connectionId)) {
+    const isConnected = user.connections.includes(connectionId);
+
+    if (!isConnected) {
       user.connections.push(connectionId);
       await user.save();
+
+      if (connectionId !== userId) {
+        try {
+          notificationModel.create({
+            recipient: connectionId,
+            sender: userId,
+            type: 'connection',
+          });
+
+        } catch (err) {
+          console.error('Notification creation error:', err.message);
+        }
+
+      }
+
       return res.status(200).json({ success: true, message: "Connection added successfully", user });
+
     } else {
-      user.connections = user.connections.filter(id => id !== connectionId);
+      user.connections = user.connections.filter(id => id.toString() !== connectionId);
       await user.save();
+
+      await notificationModel.findOneAndDelete({
+        recipient: connectionId,
+        sender: userId,
+        type: 'connection',
+      }).catch(err => console.error('Notification deletion error:', err.message));
+
+
       return res.status(200).json({ success: true, message: "Connection removed successfully", user });
     }
+
+
   } catch (error) {
-    console.error("Update Connections Error:", error);
+    console.error("Update Connections Error:", error.message, error.stack);
     return res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
+
+
+const searchUser = async (req, res) => {
+  try {
+    const query = req.query.q;
+    if (!query) {
+      return res.status(400).json({ message: 'Query is required' });
+    }
+
+    const users = await userModel.find({
+      name: { $regex: query, $options: 'i' }, // Case-insensitive regex search
+    }).select('name profilePic email');
+
+    res.json({ users });
+  } catch (error) {
+    console.error('Search error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+}
 
 export {
   loginUser,
@@ -229,5 +285,6 @@ export {
   CreateProfile,
   showProfile,
   showUserProfile,
-  updateConnections
+  updateConnections,
+  searchUser
 };

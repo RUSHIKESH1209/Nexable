@@ -2,20 +2,20 @@ import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
     name: { type: String, required: true },
-    profilePic: { type: String }, // URL or path to image
+    profilePic: { type: String },
     about: { type: String },
     phone: { type: String },
     address: { type: String },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    skills: [{ type: String }], // Array of skills
+    skills: [{ type: String }], 
     position: { type: String },
     company: { type: String },
     connections: [{ type: String }],
     
 }, { timestamps: true });
 
-userSchema.index({ name: 'text' }); // Add text index for faster search
+userSchema.index({ name: 'text' }); 
 
 
 const userModel = mongoose.models.user || mongoose.model("user", userSchema)

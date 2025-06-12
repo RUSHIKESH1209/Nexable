@@ -75,7 +75,6 @@ const Home_createpost = () => {
       className="bg-white rounded-[30px] p-6 shadow-2xl flex flex-col"
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        {/* Top Section: Profile Pic & Caption */}
         <div className="flex items-start gap-4">
           <img
             src={profilePic}
@@ -87,17 +86,16 @@ const Home_createpost = () => {
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
             className="flex-1 bg-[#f9f9f9] rounded-xl p-3 text-base resize-none outline-none focus:ring-2 focus:ring-[#7494ec] placeholder-[#888]"
-            rows={2} // Reduced rows for compactness
+            rows={2}
           />
         </div>
 
-        {/* Image Preview */}
         {preview && (
-          <div className="relative mt-2"> {/* Added margin top */}
+          <div className="relative mt-2">
             <img
               src={preview}
               alt="Selected preview"
-              className="rounded-xl max-h-[25vh] w-full object-cover border-2 border-[#7494ec] shadow-md" // Reduced max-height
+              className="rounded-xl max-h-[25vh] w-full object-cover border-2 border-[#7494ec] shadow-md"
             />
             <button
               type="button"
@@ -110,14 +108,13 @@ const Home_createpost = () => {
           </div>
         )}
 
-        {/* Bottom Section: Upload Button & Post Button */}
-        <div className="flex items-center justify-between mt-4"> {/* Adjusted margin top */}
+        <div className="flex items-center justify-between mt-4">
           <label
             htmlFor="image-upload"
             className="flex items-center text-[#7494ec] text-lg cursor-pointer hover:text-[#607bb0] transition px-3 py-2 rounded-lg bg-[#f9f9f9] hover:bg-[#eee]"
           >
             <FaImage className="text-xl mr-2" />
-            <span className="text-sm font-medium hidden sm:inline">Add Image</span> {/* Hide text on very small screens */}
+            <span className="text-sm font-medium hidden sm:inline">Add Image</span>
           </label>
           <input
             id="image-upload"
@@ -132,7 +129,7 @@ const Home_createpost = () => {
             whileTap={{ scale: 0.95 }}
             type="submit"
             disabled={loading || (!caption && !selectedFile)}
-            className="bg-[#7494ec] text-white px-5 py-2.5 rounded-lg text-base font-semibold hover:bg-[#607bb0] transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed" // Slightly smaller button
+            className="bg-[#7494ec] text-white px-5 py-2.5 rounded-lg text-base font-semibold hover:bg-[#607bb0] transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Posting...' : 'Share'}
           </motion.button>

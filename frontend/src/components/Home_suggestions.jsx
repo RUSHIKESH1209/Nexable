@@ -1,11 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { ShopContext } from '../context/ShopContext';
 
-const Home_suggestions = () => { // Renamed component
+const Home_suggestions = () => {
   const [users, setUsers] = useState([]);
   const backendURL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
   const token = localStorage.getItem('token');
+
+  const { setProfileUserId } = useContext(ShopContext);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchSuggestions = async () => {
@@ -22,7 +27,7 @@ const Home_suggestions = () => { // Renamed component
     };
 
     fetchSuggestions();
-  }, []);
+  }, [backendURL, token]);
 
   const handleConnection = async (userId) => {
     try {
@@ -40,35 +45,49 @@ const Home_suggestions = () => { // Renamed component
     }
   };
 
+  const handleProfileClick = (userId) => {
+    setProfileUserId(userId);
+    navigate('/profile');
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, delay: 0.2 }} // Slight delay for stagger effect
-      className="bg-white rounded-[30px] p-6 shadow-2xl" // Consistent card styling
+      transition={{ duration: 0.6, delay: 0.2 }}
+      className="bg-white rounded-[30px] p-6 shadow-2xl"
     >
-      <h2 className="text-xl font-bold text-[#333] mb-4">Suggested People</h2> {/* Consistent heading style */}
+      <h2 className="text-xl font-bold text-[#333] mb-4">Suggested People</h2>
       {users.length ? (
-        <div className="space-y-4"> {/* Spacing between suggested users */}
+        <div className="space-y-4">
           {users.map((user) => (
-            <div key={user._id} className="flex items-center gap-4 pb-4 border-b border-[#eee] last:border-b-0"> {/* Separator */}
+            <div
+              key={user._id}
+              className="flex items-center gap-4 pb-4 border-b border-[#eee] last:border-b-0"
+            >
               <img
                 src={user.profilePic || '/profilepic.png'}
                 alt={user.name}
-                className="w-12 h-12 rounded-full object-cover border-2 border-[#7494ec]" // Nexable border
+                className="w-12 h-12 rounded-full object-cover  cursor-pointer"
+                onClick={() => handleProfileClick(user._id)}
               />
-              <div>
-                <p className="font-semibold text-base text-[#333] mb-1">{user.name}</p>
-                <div className="flex gap-2">
+              <div className="flex-1 flex flex-col">
+                <p
+                  className="font-semibold text-base text-[#333] mb-1 cursor-pointer"
+                  onClick={() => handleProfileClick(user._id)}
+                >
+                  {user.name}
+                </p>
+                <div className="flex gap-2 mt-1 sm:mt-0">
                   <button
                     onClick={() => window.location.href = `/chat/${user._id}`}
-                    className="bg-[#7494ec] text-white px-4 py-1.5 rounded-lg text-sm hover:bg-[#607bb0] transition" // Nexable button
+                    className="bg-[#dbe6ff] text-[#7494ec] px-3 py-1.5 rounded-full text-xs font-medium hover:bg-[#c6d7fb] transition"
                   >
                     Chat
                   </button>
                   <button
                     onClick={() => handleConnection(user._id)}
-                    className="bg-blue-500 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-blue-600 transition" // Default blue for 'Connect'
+                    className="bg-[#7494ec] text-white px-3 py-1.5 rounded-full text-xs font-medium hover:bg-[#5c73c9] transition"
                   >
                     Connect
                   </button>

@@ -1,7 +1,7 @@
 import User from '../models/userModel.js';
 import mongoose from 'mongoose';
 
-// Get all users except the logged-in one
+// Get all users except me 
 export const getAllUsers = async (req, res) => {
   try {
     const currentUserId = req.user.id; // Based on your middleware
@@ -18,6 +18,7 @@ export const getAllUsers = async (req, res) => {
 
 
 
+// controller to suggest connections based on mutual connections, address, and company
 
 export const suggestUsers = async (req, res) => {
   try {
@@ -33,7 +34,7 @@ export const suggestUsers = async (req, res) => {
     const alreadySuggested = new Set([...connections, userId]);
     let suggestions = [];
 
-    // 1. Mutual connections
+    //  Mutual connections
     const mutuals = await User.find({
       _id: { $nin: Array.from(alreadySuggested) },
       connections: { $in: connections },
@@ -47,7 +48,7 @@ export const suggestUsers = async (req, res) => {
       }
     }
 
-    // 2. Address or Company matches
+    //  Address or Company matches
     const matchAddressCompany = await User.find({
       _id: { $nin: Array.from(alreadySuggested) },
       $or: [
@@ -64,7 +65,7 @@ export const suggestUsers = async (req, res) => {
       }
     }
 
-    // 3. Fill remaining with random users (loop until we hit the limit)
+    // random users
     while (suggestions.length < suggestionLimit) {
       const needed = suggestionLimit - suggestions.length;
       const randomUsers = await User.aggregate([

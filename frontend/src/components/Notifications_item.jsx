@@ -1,17 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { FaUserPlus, FaEnvelope } from 'react-icons/fa';
+import { FaUserPlus, FaEnvelope, FaHeart, FaCommentAlt } from 'react-icons/fa';
 import moment from 'moment';
+import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
 const Notifications_item = () => {
   const [notifications, setNotifications] = useState([]);
-  const [senders, setSenders] = useState({}); // store sender info by id
+  const [senders, setSenders] = useState({});
+  const [loading, setLoading] = useState(true);
   const backendURL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
   const token = localStorage.getItem('token');
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Fetch notifications
     const fetchNotifications = async () => {
+      setLoading(true);
       try {
         const res = await axios.get(`${backendURL}/api/notification`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -22,17 +26,24 @@ const Notifications_item = () => {
         }
       } catch (error) {
         console.error('Error fetching notifications:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchNotifications();
-  }, []);
+    if (token) {
+      fetchNotifications();
+    } else {
+      setLoading(false);
+    }
+  }, [token]);
 
   useEffect(() => {
-    // For all sender IDs not fetched yet, fetch sender details
     const fetchSenders = async () => {
       const senderIds = [...new Set(notifications.map(n => n.sender))];
       const idsToFetch = senderIds.filter(id => !senders[id]);
+
+      if (idsToFetch.length === 0) return;
 
       try {
         const requests = idsToFetch.map(id =>
@@ -59,74 +70,108 @@ const Notifications_item = () => {
     if (notifications.length > 0) {
       fetchSenders();
     }
-  }, [notifications]);
+  }, [notifications, senders, backendURL, token]);
 
   const renderNotificationText = (notification) => {
+    const sender = senders[notification.sender];
+    const senderName = sender ? sender.name : 'Someone';
+
     switch (notification.type) {
-      case 'connection-request':
-        return 'sent you a connection request';
-      case 'connection-accepted':
-        return 'accepted your connection request';
+      case 'connection':
+        return <><span className="font-bold text-[#333]">{senderName}</span> connected with you.</>;
       case 'like':
-        return 'liked your post';
+        return <><span className="font-bold text-[#333]">{senderName}</span> liked your post.</>;
       case 'comment':
-        return `commented: "${notification.text || ''}"`;
+        return <><span className="font-bold text-[#333]">{senderName}</span> commented: "<span className="italic">{notification.text || 'No comment text'}</span>"</>;
       case 'message':
-        return 'sent you a message';
+        return <><span className="font-bold text-[#333]">{senderName}</span> sent you a message.</>;
       default:
         return '';
     }
   };
 
+  const renderNotificationIcon = (type, senderId) => {
+    const iconClass = "text-[#7494ec] text-xl flex-shrink-0";
+
+    switch (type) {
+      case 'connection':
+        return <FaUserPlus className={iconClass} />;
+      case 'like':
+        return <FaHeart className="text-red-500 text-xl flex-shrink-0" />;
+      case 'comment':
+        return <FaCommentAlt className={iconClass} />;
+      case 'message':
+        return (
+          <FaEnvelope
+            className={`${iconClass} cursor-pointer hover:text-green-600`}
+            onClick={() => navigate(`/chat/${senderId}`)}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
-    <div className="bg-white p-4 rounded-xl border border-[#EC5228] shadow-sm max-w-md mx-auto">
-      <h2 className="text-lg font-semibold text-[#EC5228] mb-3">Notifications</h2>
-      {notifications.length > 0 ? (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, delay: 0.2 }}
+      className="bg-white rounded-[30px] p-6 shadow-2xl"
+    >
+      <h2 className="text-xl font-bold text-[#333] mb-4">Notifications</h2>
+
+      {loading ? (
+        <div className="flex items-center justify-center min-h-[100px]">
+          <div className="w-8 h-8 border-4 border-blue-400 border-dashed rounded-full animate-spin"></div>
+        </div>
+      ) : notifications.length > 0 ? (
         <div className="flex flex-col gap-4">
           {notifications.map((item) => {
             const sender = senders[item.sender];
 
             return (
-              <div
+              <motion.div
                 key={item._id}
-                className="flex items-center justify-between gap-4 p-2 rounded-md hover:bg-[#fbe6df] transition"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3 }}
+                className="flex items-center justify-between gap-4 p-3 rounded-xl cursor-pointer
+                           bg-[#f9f9f9] hover:bg-[#f0f4ff] transition duration-200 ease-in-out
+                           border border-gray-100"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-grow">
                   {sender?.profilePic ? (
                     <img
                       src={sender.profilePic}
                       alt={sender.name}
-                      className="w-10 h-10 rounded-full object-cover border border-gray-300"
+                      className="w-11 h-11 rounded-full object-cover border-2 border-[#7494ec] flex-shrink-0 shadow-sm"
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-white font-bold border border-gray-300">
+                    <div className="w-11 h-11 rounded-full bg-[#7494ec] flex items-center justify-center text-white font-bold border-2 border-[#7494ec] flex-shrink-0 shadow-sm">
                       {sender?.name?.[0]?.toUpperCase() || '?'}
                     </div>
                   )}
-                  <div>
-                    <p className="font-medium text-sm text-[#EC5228]">
-                      {sender ? sender.name : 'User'} {renderNotificationText(item)}
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-700 leading-snug">
+                      {renderNotificationText(item)}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-500 mt-1">
                       {moment(item.createdAt).fromNow()}
                     </p>
                   </div>
                 </div>
-                <div className="text-[#EC5228] text-lg">
-                  {item.type === 'connection-request' || item.type === 'connection-accepted' ? (
-                    <FaUserPlus />
-                  ) : (
-                    <FaEnvelope />
-                  )}
+                <div className="ml-2">
+                  {renderNotificationIcon(item.type, item.sender)}
                 </div>
-              </div>
+              </motion.div>
             );
           })}
         </div>
       ) : (
-        <p className="text-sm text-gray-500">No new notifications.</p>
+        <p className="text-sm text-[#888] text-center py-4">No new notifications.</p>
       )}
-    </div>
+    </motion.div>
   );
 };
 

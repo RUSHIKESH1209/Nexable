@@ -1,42 +1,62 @@
-import React from 'react';
-import { FaHome, FaUserFriends, FaBell, FaUser } from 'react-icons/fa'; // Removed FaSearch as it's not directly used for link
+import React, { useContext } from 'react';
+import { FaHome, FaUserFriends, FaBell, FaUser } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
-import Search from './Search'; // Assuming Search component is fine as is
+import Search from './Search';
+import { ShopContext } from '../context/ShopContext';
 
 const Navbar = () => {
-  return (
-    <nav className="bg-white shadow-md px-6 py-3 flex items-center justify-between border-b border-gray-200">
-      {/* Logo / Brand */}
-      {/* Changed text color to match the Login's primary blue */}
-      <div className="text-2xl font-bold text-[#7494ec]">
-        <Link to="/home">Nexable</Link>
-      </div>
+    const { setProfileUserId } = useContext(ShopContext);
 
-      {/* Search bar */}
-      {/* Assuming Search component will visually blend or can be styled separately */}
-      <Search />
+    const handleProfileClick = () => {
+        setProfileUserId(null);
+    };
 
-      {/* Navigation links with icons and labels */}
-      <div className="flex items-center gap-6 text-[#333] text-sm font-semibold"> {/* Changed text color to dark grey, added font-semibold */}
-        <Link to="/home" className="flex items-center gap-2 hover:text-[#7494ec] transition-colors">
-          <FaHome className="text-lg" />
-          <span>Home</span>
-        </Link>
-        <Link to="/connections" className="flex items-center gap-2 hover:text-[#7494ec] transition-colors">
-          <FaUserFriends className="text-lg" />
-          <span>Connections</span>
-        </Link>
-        <Link to="/notifications" className="flex items-center gap-2 hover:text-[#7494ec] transition-colors">
-          <FaBell className="text-lg" />
-          <span>Notifications</span>
-        </Link>
-        <Link to="/profile" className="flex items-center gap-2 hover:text-[#7494ec] transition-colors">
-          <FaUser className="text-lg" />
-          <span>Profile</span>
-        </Link>
-      </div>
-    </nav>
-  );
+    return (
+        <nav className="bg-white shadow-md px-4 py-3 flex items-center justify-between border-b border-gray-200 md:px-6">
+            <div className="text-2xl font-bold text-[#7494ec] flex-shrink-0">
+                <Link to="/home">Nexable</Link>
+            </div>
+
+            <div className="hidden md:block flex-grow max-w-sm mx-4">
+                <Search />
+            </div>
+
+            <div className="flex items-center justify-end gap-4 text-[#333] text-sm font-semibold flex-shrink-0">
+                <Link
+                    to="/home"
+                    className="flex flex-col items-center gap-1 hover:text-[#7494ec] transition-colors sm:flex-row sm:gap-2"
+                >
+                    <FaHome className="text-lg md:text-xl" />
+                    <span className="hidden sm:block text-xs md:text-sm">Home</span>
+                </Link>
+
+                <Link
+                    to="/connections"
+                    className="flex flex-col items-center gap-1 hover:text-[#7494ec] transition-colors sm:flex-row sm:gap-2"
+                >
+                    <FaUserFriends className="text-lg md:text-xl" />
+                    <span className="hidden sm:block text-xs md:text-sm">Connections</span>
+                </Link>
+
+                <Link
+                    to="/notifications"
+                    className="flex flex-col items-center gap-1 hover:text-[#7494ec] transition-colors sm:flex-row sm:gap-2"
+                >
+                    <FaBell className="text-lg md:text-xl" />
+                    <span className="hidden sm:block text-xs md:text-sm">Notifications</span>
+                </Link>
+
+                <Link
+                    to="/profile"
+                    onClick={handleProfileClick}
+                    className="flex flex-col items-center gap-1 hover:text-[#7494ec] transition-colors sm:flex-row sm:gap-2"
+                >
+                    <FaUser className="text-lg md:text-xl" />
+                    <span className="hidden sm:block text-xs md:text-sm">Profile</span>
+                </Link>
+            </div>
+        </nav>
+    );
 };
 
 export default Navbar;

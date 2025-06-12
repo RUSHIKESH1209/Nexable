@@ -70,7 +70,6 @@ function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-[#e2e2e2] to-[#c9d6ff]">
       <motion.div className="relative w-[850px] h-[550px] bg-white m-5 rounded-[30px] shadow-2xl overflow-hidden">
         
-        {/* Login Form */}
         <motion.div
           className="absolute right-0 w-1/2 h-full bg-white flex items-center justify-center text-center p-10 z-30"
           variants={loginFormVariants}
@@ -124,7 +123,6 @@ function Login() {
           </form>
         </motion.div>
 
-        {/* Register Form */}
         <motion.div
           className="absolute left-0 w-1/2 h-full bg-white flex items-center justify-center text-center p-10 z-30"
           variants={registerFormVariants}
@@ -186,9 +184,7 @@ function Login() {
           </form>
         </motion.div>
 
-        {/* Sliding Background + Toggle Panels */}
         <motion.div className="absolute top-0 left-0 w-full h-full z-10">
-          {/* Sliding Blue Background */}
           <motion.div
             className="absolute top-0 h-full bg-[#7494ec] rounded-[150px] z-10 pointer-events-none"
             variants={toggleBoxBeforeVariants}
@@ -198,7 +194,6 @@ function Login() {
             style={{ width: '300%' }}
           ></motion.div>
 
-          {/* Left Toggle Panel */}
           <motion.div
             className="absolute top-0 left-0 w-1/2 h-full text-white flex flex-col justify-center items-center z-20 p-10"
             variants={toggleLeftPanelVariants}
@@ -216,7 +211,6 @@ function Login() {
             </button>
           </motion.div>
 
-          {/* Right Toggle Panel */}
           <motion.div
             className="absolute top-0 right-0 w-1/2 h-full text-white flex flex-col justify-center items-center z-20 p-10"
             variants={toggleRightPanelVariants}
