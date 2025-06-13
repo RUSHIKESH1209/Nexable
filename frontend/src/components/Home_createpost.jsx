@@ -61,7 +61,9 @@ const Home_createpost = () => {
       } else {
         console.error('Failed to post:', response.data.message);
       }
-      toast.success("Post Created Successfully");
+      toast.success("Post Created Successfully", {
+        autoClose: 500,  
+      });
 
     } catch (error) {
 
