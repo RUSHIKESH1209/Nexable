@@ -6,6 +6,8 @@ import jwt from "jsonwebtoken";
 import { v2 as cloudinary } from "cloudinary";
 import { Readable } from "stream";
 import notificationModel from "../models/notificationModel.js";
+import { OAuth2Client } from 'google-auth-library';
+
 
 // Create JWT Token with Expiry
 const createToken = (id) => {
@@ -260,6 +262,7 @@ const updateConnections = async (req, res) => {
   }
 };
 
+// search user controller
 
 const searchUser = async (req, res) => {
   try {
@@ -268,16 +271,68 @@ const searchUser = async (req, res) => {
       return res.status(400).json({ message: 'Query is required' });
     }
 
-    const users = await userModel.find({
-      name: { $regex: query, $options: 'i' }, // Case-insensitive regex search
-    }).select('name profilePic email');
-
+    const users = await userModel.find(
+      {
+        $or: [ 
+          { name: { $regex: query, $options: 'i' } }, 
+          { company: { $regex: query, $options: 'i' } } 
+        ]
+      },
+      'name profilePic _id connections' 
+    );
     res.json({ users });
   } catch (error) {
     console.error('Search error:', error);
     res.status(500).json({ message: 'Server error' });
   }
-}
+};
+
+// google sign-in controller
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const googleAuthController = async (req, res) => {
+  try {
+    const { credential } = req.body;
+
+    console.log('Google Auth Credential:', credential);
+
+    const ticket = await client.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    const { email, name, picture } = payload;
+
+    let user = await userModel.findOne({ email });
+    let isNewUser = false;
+
+    if (!user) {
+      // Register new user
+      user = await userModel.create({
+        email,
+        name,
+        profilePic: picture,
+        password: '', // Optional
+      });
+      console.log('New user registered via Google:', email);
+      isNewUser = true;
+    } else {
+      console.log('User logged in via Google:', email);
+    }
+
+    // Create token
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: '7d',
+    });
+
+    res.status(200).json({ token, isNewUser });
+
+  } catch (error) {
+    console.error('Google Auth Error:', error);
+    res.status(500).json({ message: 'Google authentication failed' });
+  }
+};
 
 export {
   loginUser,
@@ -286,5 +341,6 @@ export {
   showProfile,
   showUserProfile,
   updateConnections,
-  searchUser
+  searchUser,
+  googleAuthController
 };

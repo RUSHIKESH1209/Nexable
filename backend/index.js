@@ -16,7 +16,6 @@ import initializeSocket from './socket.js';
 const app = express();
 const server = http.createServer(app);
 
-// Initialize Socket.IO functionality
 initializeSocket(server);
 
 await connectDB();

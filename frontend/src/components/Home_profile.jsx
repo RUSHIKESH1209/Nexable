@@ -17,7 +17,6 @@ const Home_profile = () => {
                 if (!token) {
                     setError('No authorization token found. Please login.');
                     setLoading(false);
-                    // window.location.href = '/'; // Consider redirecting if no token
                     return;
                 }
 
@@ -73,7 +72,6 @@ const Home_profile = () => {
             transition={{ duration: 0.6 }}
             className="bg-white w-full p-6 rounded-[30px] shadow-2xl flex flex-col items-center text-center"
         >
-            {/* Profile Header Section */}
             <div className="mb-6 flex flex-col items-center">
                 <img
                     src={profile.profilePic || '/profilepic.png'}
@@ -89,7 +87,6 @@ const Home_profile = () => {
 
             </div>
 
-            {/* About Section */}
             <div className="w-full text-left mb-6 p-4 bg-[#f0f4ff] rounded-xl shadow-inner">
                 <h4 className="text-lg font-semibold text-[#333] mb-2">About Me</h4>
                 <p className="text-sm text-[#555] leading-relaxed break-words">
@@ -97,35 +94,30 @@ const Home_profile = () => {
                 </p>
             </div>
 
-            {/* Contact Information Section */}
             <div className="w-full text-left mb-6 p-4 bg-[#f0f4ff] rounded-xl shadow-inner">
                 <h4 className="text-lg font-semibold text-[#333] mb-2">Contact Information</h4>
-                <div className="space-y-1 text-sm text-[#555]">
-                    {/* Phone */}
-                    <p className="flex items-start overflow-hidden"> {/* Added overflow-hidden to parent p */}
-                        <i className="bx bxs-phone text-[#7494ec] text-lg mr-2 flex-shrink-0 mt-1"></i> {/* Added mt-1 for vertical alignment */}
-                        <span className="flex-grow min-w-0 break-all"> {/* Added flex-grow and min-w-0 */}
+                <div className="space-y-1 text-sm text-[#555}">
+                    <p className="flex items-start overflow-hidden">
+                        <i className="bx bxs-phone text-[#7494ec] text-lg mr-2 flex-shrink-0 mt-1"></i>
+                        <span className="flex-grow min-w-0 break-all">
                             {profile.phone || 'N/A'}
                         </span>
                     </p>
-                    {/* Email */}
-                    <p className="flex items-start overflow-hidden"> {/* Added overflow-hidden to parent p */}
-                        <i className="bx bxs-envelope text-[#7494ec] text-lg mr-2 flex-shrink-0 mt-1"></i> {/* Added mt-1 for vertical alignment */}
-                        <span className="flex-grow min-w-0 break-all"> {/* Added flex-grow and min-w-0 */}
+                    <p className="flex items-start overflow-hidden">
+                        <i className="bx bxs-envelope text-[#7494ec] text-lg mr-2 flex-shrink-0 mt-1"></i>
+                        <span className="flex-grow min-w-0 break-all">
                             {profile.email || 'N/A'}
                         </span>
                     </p>
-                    {/* Address */}
-                    <p className="flex items-start overflow-hidden"> {/* Added overflow-hidden to parent p */}
-                        <i className="bx bxs-map text-[#7494ec] text-lg mr-2 flex-shrink-0 mt-1"></i> {/* Added mt-1 for vertical alignment */}
-                        <span className="flex-grow min-w-0 break-all"> {/* Added flex-grow and min-w-0 */}
+                    <p className="flex items-start overflow-hidden">
+                        <i className="bx bxs-map text-[#7494ec] text-lg mr-2 flex-shrink-0 mt-1"></i>
+                        <span className="flex-grow min-w-0 break-all">
                             {profile.address || 'N/A'}
                         </span>
                     </p>
                 </div>
             </div>
 
-            {/* Skills Section */}
             <div className="w-full text-left p-4 bg-[#f0f4ff] rounded-xl shadow-inner">
                 <h4 className="text-lg font-semibold text-[#333] mb-3">Skills</h4>
                 <div className="flex flex-wrap gap-2">

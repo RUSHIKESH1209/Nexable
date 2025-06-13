@@ -8,6 +8,7 @@ const ShopContextProvider = ({ children }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [userId, setUserId] = useState(() => localStorage.getItem('userId') || '');
 
   const [profilePic, setProfilePic] = useState(null);
   const [about, setAbout] = useState('');
@@ -36,6 +37,7 @@ const ShopContextProvider = ({ children }) => {
     skillInput, setSkillInput,
     position, setPosition,
     company, setCompany,
+    userId, setUserId,
 
     profileUserId, setProfileUserId,
   };

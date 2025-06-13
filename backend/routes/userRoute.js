@@ -2,7 +2,7 @@ import express from "express";
 const userRouter = express.Router();
 import upload from "../middleware/multer.js";
 
-import { loginUser, registerUser, CreateProfile ,showProfile, showUserProfile, updateConnections, searchUser } from "../controllers/userController.js";
+import { loginUser, registerUser, CreateProfile ,showProfile, showUserProfile, updateConnections, searchUser, googleAuthController } from "../controllers/userController.js";
 import authUser from "../middleware/auth.js";
 import userModel from "../models/userModel.js";
 import { getAllUsers, suggestUsers } from "../controllers/suggestions.js";
@@ -15,12 +15,15 @@ userRouter.get('/search', searchUser);
 userRouter.get('/all', authUser, getAllUsers);
 userRouter.get('/suggestions' ,authUser ,suggestUsers)
 userRouter.post('/updateConnections', authUser ,updateConnections)
-userRouter.post(
+userRouter.post('/google-login', googleAuthController);
+userRouter.use(
   "/createprofile",
   authUser,  
   upload.fields([{ name: "profilePic", maxCount: 1 }]),
   CreateProfile
 );
+
+
 
 
 export default userRouter;

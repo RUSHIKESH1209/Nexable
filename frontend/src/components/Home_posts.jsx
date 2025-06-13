@@ -211,7 +211,7 @@ const Home_posts = () => {
                           <img
                             src={commenter.profilePic || '/profilepic.png'}
                             alt="Commenter"
-                            className="w-8 h-8 rounded-full object-cover border border-green-500 cursor-pointer"
+                            className="w-8 h-8 rounded-full object-cover border border-gray-300 cursor-pointer"
                             onClick={() => handleProfileClick(cmt.userId)}
                           />
                           <div className="flex-1 bg-gray-50 p-3 rounded-2xl shadow-sm">
@@ -243,11 +243,11 @@ const Home_posts = () => {
                         setNewComments({ ...newComments, [post._id]: e.target.value })
                       }
                       placeholder="Add a comment..."
-                      className="flex-1 bg-white border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                      className="flex-1 bg-white border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus-within:ring-[#7494ec]"
                     />
                     <button
                       onClick={() => handleAddComment(post._id)}
-                      className="bg-green-600 text-white px-4 py-2 rounded-full text-sm hover:bg-green-700 transition"
+                      className="bg-[#7494ec] text-white px-4 py-2 rounded-full text-sm hover:bg-[#6b8fd4] transition"
                     >
                       Post
                     </button>

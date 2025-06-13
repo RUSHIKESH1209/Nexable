@@ -70,7 +70,7 @@ const Connections_item = () => {
   };
 
   const handleMessage = (userId) => {
-    window.location.href = `/chat/${userId}`;
+    navigate(`/chat/${userId}`);
   };
 
   const handleProfileClick = (userId) => {

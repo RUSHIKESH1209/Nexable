@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FaImage } from 'react-icons/fa';
 import axios from 'axios';
 import { motion } from 'framer-motion';
+import { toast } from 'react-toastify';
 
 const Home_createpost = () => {
   const backendURL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
@@ -60,8 +61,14 @@ const Home_createpost = () => {
       } else {
         console.error('Failed to post:', response.data.message);
       }
+      toast.success("Post Created Successfully");
+
     } catch (error) {
+
       console.error('Error creating post:', error);
+      toast.error('Error creating post');
+
+
     } finally {
       setLoading(false);
     }

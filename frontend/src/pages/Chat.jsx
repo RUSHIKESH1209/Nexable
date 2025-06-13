@@ -1,32 +1,37 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { io } from 'socket.io-client';
+import { io } from 'socket.io-client'; // Import io
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaPaperPlane, FaUserCircle, FaInfoCircle, FaEllipsisH } from 'react-icons/fa';
 import { MdOutlineBackspace } from "react-icons/md";
 
-const socket = io('http://localhost:3000');
-
-// --- Helper function to format chat dates ---
 const formatChatDate = (dateString) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(today.getDate() - 1);
+  const date = new Date(dateString);
+  const today = new Date();
+  const yesterday = new Date();
 
-    const isSameDay = (d1, d2) => d1.getFullYear() === d2.getFullYear() &&
-                                  d1.getMonth() === d2.getMonth() &&
-                                  d1.getDate() === d2.getDate();
+  // Set times to midnight in local time zone
+  today.setHours(0, 0, 0, 0);
+  yesterday.setDate(today.getDate() - 1);
+  yesterday.setHours(0, 0, 0, 0);
 
-    if (isSameDay(date, today)) {
-        return "Today";
-    } else if (isSameDay(date, yesterday)) {
-        return "Yesterday";
-    } else {
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    }
+  const messageDate = new Date(date);
+  messageDate.setHours(0, 0, 0, 0);
+
+  if (messageDate.getTime() === today.getTime()) {
+    return "Today";
+  } else if (messageDate.getTime() === yesterday.getTime()) {
+    return "Yesterday";
+  } else {
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  }
 };
+
 
 const Chat = () => {
     const { receiverId } = useParams();
@@ -38,15 +43,24 @@ const Chat = () => {
     const [senderUser, setSenderUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [isReceiverOnline, setIsReceiverOnline] = useState(false); // New state for online status
-    const [onlineUsersList, setOnlineUsersList] = useState([]); // New state to track all online users
+    const [isReceiverOnline, setIsReceiverOnline] = useState(false);
+    const [onlineUsersList, setOnlineUsersList] = useState([]);
 
     const messagesEndRef = useRef(null);
     const typingTimeoutRef = useRef(null);
+    const chatContainerRef = useRef(null);
 
     const backendURL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
     const token = localStorage.getItem('token');
     const senderId = token ? JSON.parse(atob(token.split('.')[1])).id : null;
+
+    // --- Ensure a single, stable socket instance ---
+    const socket = useMemo(() => {
+        // Only create a new socket if one doesn't exist
+        // or if the component is being completely re-mounted.
+        // This effectively makes it a singleton for the component's lifecycle.
+        return io(backendURL);
+    }, [backendURL]); // Dependency on backendURL, though it's likely static
 
     // --- Memoized grouped messages for efficient rendering ---
     const groupedMessages = useMemo(() => {
@@ -62,6 +76,53 @@ const Chat = () => {
         return groups;
     }, [messages]);
 
+    // --- Function to scroll to bottom with multiple fallbacks ---
+    const scrollToBottom = useCallback((behavior = 'smooth') => {
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior });
+        } else if (chatContainerRef.current) {
+            const container = chatContainerRef.current;
+            if (behavior === 'auto') {
+                container.scrollTop = container.scrollHeight;
+            } else {
+                container.scrollTo({
+                    top: container.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }
+        }
+    }, []); // No dependencies for this callback
+
+    // --- Function to mark messages as seen when chat is opened or scrolled to bottom ---
+    const markMessagesAsSeen = useCallback(async () => {
+        const unseenMessages = messages.filter(msg =>
+            msg.sender === receiverId &&
+            msg.receiver === senderId &&
+            !msg.seen
+        );
+
+        if (unseenMessages.length > 0) {
+            try {
+                console.log(`[Client] Marking messages as seen from ${receiverId} by ${senderId}`);
+                socket.emit('seen', { from: receiverId, by: senderId });
+
+                await axios.patch(`${backendURL}/api/message/seen/${receiverId}`, {}, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+
+                setMessages(prevMessages =>
+                    prevMessages.map(msg =>
+                        (msg.sender === receiverId && msg.receiver === senderId && !msg.seen)
+                            ? { ...msg, seen: true }
+                            : msg
+                    )
+                );
+            } catch (err) {
+                console.error('Failed to mark messages as seen:', err);
+            }
+        }
+    }, [messages, receiverId, senderId, backendURL, token, socket]); // Added socket to dependencies
+
     // --- Socket.IO Effects ---
     useEffect(() => {
         if (!senderId) {
@@ -70,86 +131,115 @@ const Chat = () => {
             return;
         }
 
+        // Ensure socket is connected and registered only once when component mounts
+        // or when senderId/receiverId truly changes in a way that needs re-registration.
+        // The `useMemo` above ensures `socket` itself is stable.
         socket.emit('register', senderId);
 
-        // Listen for current online users upon connection
-        socket.on('current_online_users', (onlineUserIds) => {
+        const handleCurrentOnlineUsers = (onlineUserIds) => {
             setOnlineUsersList(onlineUserIds);
             setIsReceiverOnline(onlineUserIds.includes(receiverId));
-        });
+        };
+        socket.on('current_online_users', handleCurrentOnlineUsers);
 
-        // Listen for individual user online/offline events
-        socket.on('user_online', (userId) => {
+        const handleUserOnline = (userId) => {
             setOnlineUsersList(prev => {
                 const newSet = new Set(prev);
                 newSet.add(userId);
                 return Array.from(newSet);
             });
-        });
+        };
+        socket.on('user_online', handleUserOnline);
 
-        socket.on('user_offline', (userId) => {
+        const handleUserOffline = (userId) => {
             setOnlineUsersList(prev => {
                 const newSet = new Set(prev);
                 newSet.delete(userId);
                 return Array.from(newSet);
             });
-        });
+        };
+        socket.on('user_offline', handleUserOffline);
 
-        socket.on('receive_message', (data) => {
-            // Only add message if it's for the current chat window
-            if ((data.sender === receiverId && data.receiver === senderId) || (data.sender === senderId && data.receiver === receiverId)) {
-                setMessages((prev) => [...prev, data]);
+        const handleReceiveMessage = (data) => {
+            if ((data.sender === receiverId && data.receiver === senderId) ||
+                (data.sender === senderId && data.receiver === receiverId)) {
+                setMessages((prev) => {
+                    const newMessages = [...prev, { ...data, seen: data.seen || false }];
+                    // If the newly received message is from the receiver, mark it as seen
+                    if (data.sender === receiverId && data.receiver === senderId) {
+                        // This timeout is crucial to allow React to render the message first
+                        // before the markAsSeen call potentially triggers another render.
+                        setTimeout(() => {
+                            markMessagesAsSeen();
+                        }, 50); // Small delay
+                    }
+                    return newMessages;
+                });
             }
-        });
+        };
+        socket.on('receive_message', handleReceiveMessage);
 
-        socket.on('typing', (data) => {
+        const handleTyping = (data) => {
             if (data.from === receiverId) {
                 setTyping(true);
                 if (typingTimeoutRef.current) {
                     clearTimeout(typingTimeoutRef.current);
                 }
-                // Automatically stop typing after 2 seconds if no new typing events
                 typingTimeoutRef.current = setTimeout(() => {
                     setTyping(false);
                 }, 2000);
             }
-        });
+        };
+        socket.on('typing', handleTyping);
 
-        socket.on('stop_typing', (data) => {
-             if (data.from === receiverId) {
+        const handleStopTyping = (data) => {
+            if (data.from === receiverId) {
                 setTyping(false);
                 if (typingTimeoutRef.current) {
                     clearTimeout(typingTimeoutRef.current);
                 }
             }
-        });
+        };
+        socket.on('stop_typing', handleStopTyping);
 
-        socket.on('seen', (data) => console.log(`Message seen by ${data.by}`));
+        const handleSeen = (data) => {
+            console.log(`[Client] 'seen' event received:`, data);
+            if (data.by === receiverId && data.from === senderId) {
+                console.log(`[Client] Updating our messages as seen in chat with ${receiverId}`);
+                setMessages(prevMessages =>
+                    prevMessages.map(msg =>
+                        (msg.sender === senderId && msg.receiver === receiverId && !msg.seen)
+                            ? { ...msg, seen: true }
+                            : msg
+                    )
+                );
+            }
+        };
+        socket.on('seen', handleSeen);
 
         return () => {
             // Clean up socket listeners
-            socket.off('register'); // Not strictly needed here, but good practice
-            socket.off('current_online_users');
-            socket.off('user_online');
-            socket.off('user_offline');
-            socket.off('receive_message');
-            socket.off('typing');
-            socket.off('stop_typing');
-            socket.off('seen');
+            socket.off('current_online_users', handleCurrentOnlineUsers);
+            socket.off('user_online', handleUserOnline);
+            socket.off('user_offline', handleUserOffline);
+            socket.off('receive_message', handleReceiveMessage);
+            socket.off('typing', handleTyping);
+            socket.off('stop_typing', handleStopTyping);
+            socket.off('seen', handleSeen);
 
-            // Emit unregister only if necessary, or let server handle disconnect
-            // socket.emit('unregister', senderId); // This might be redundant if disconnect handles it
             if (typingTimeoutRef.current) {
                 clearTimeout(typingTimeoutRef.current);
             }
+            // If the component unmounts, you might want to consider telling the server
+            // that this specific socket instance is no longer interested in updates for `senderId`.
+            // However, the server's 'disconnect' handles this for the socket.id.
         };
-    }, [senderId, receiverId]);
+    }, [senderId, receiverId, socket, markMessagesAsSeen]); // Added socket and markMessagesAsSeen to dependencies
 
     // --- Effect to update receiver's online status based on onlineUsersList ---
     useEffect(() => {
         setIsReceiverOnline(onlineUsersList.includes(receiverId));
     }, [onlineUsersList, receiverId]);
-
 
     // --- Fetch Messages & User Info ---
     useEffect(() => {
@@ -166,7 +256,7 @@ const Chat = () => {
                 const msgRes = await axios.get(`${backendURL}/api/message/${receiverId}`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
-                setMessages(msgRes.data);
+                setMessages(msgRes.data.map(msg => ({ ...msg, seen: msg.seen || false })));
 
                 const senderRes = await axios.get(`${backendURL}/api/user/profile/${senderId}`, {
                     headers: { Authorization: `Bearer ${token}` },
@@ -178,10 +268,10 @@ const Chat = () => {
                 });
                 setReceiverUser(receiverRes.data.user);
 
-                socket.emit('seen', { from: receiverId, by: senderId });
-                await axios.patch(`${backendURL}/api/message/seen/${receiverId}`, {}, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
+                // Force scroll to bottom after all data is loaded
+                setTimeout(() => {
+                    scrollToBottom('auto');
+                }, 100);
 
             } catch (err) {
                 console.error('Failed to fetch chat data:', err);
@@ -191,34 +281,80 @@ const Chat = () => {
             }
         };
         fetchChatData();
-    }, [receiverId, senderId, token, backendURL]);
+    }, [receiverId, senderId, token, backendURL, scrollToBottom]);
+
+    // --- Mark messages as seen when chat loads or messages change ---
+    useEffect(() => {
+        // This useEffect is good for marking initial messages as seen.
+        // The `handleReceiveMessage` now also calls `markMessagesAsSeen` for new incoming messages.
+        if (!loading && messages.length > 0) {
+            const timer = setTimeout(() => {
+                markMessagesAsSeen();
+                scrollToBottom('auto');
+            }, 1000);
+
+            return () => clearTimeout(timer);
+        }
+    }, [messages, loading, markMessagesAsSeen, scrollToBottom]);
 
     // --- Auto-scroll to latest message ---
+    // This useEffect is also good for ensuring new messages cause a scroll
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages]);
+        scrollToBottom();
+        const timer = setTimeout(() => scrollToBottom(), 100);
+        return () => clearTimeout(timer);
+    }, [messages, typing, scrollToBottom]);
+
+
+    // --- Handle scroll to detect when user is at bottom ---
+    const handleScroll = () => {
+        if (chatContainerRef.current) {
+            const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+            const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
+
+            if (isAtBottom) {
+                markMessagesAsSeen();
+            }
+        }
+    };
 
     // --- Handle Send Message ---
     const handleSend = async () => {
         if (!newMessage.trim()) return;
 
-        const currentTime = new Date().toISOString(); // Get ISO string for consistent date handling
-        const msgPayload = { receiver: receiverId, message: newMessage.trim(), createdAt: currentTime };
+        const currentTime = new Date().toISOString();
+        const msgPayload = {
+            receiver: receiverId,
+            message: newMessage.trim(),
+            createdAt: currentTime,
+            sender: senderId,
+            seen: false
+        };
 
-        // Optimistic UI update
-        setMessages(prev => [...prev, { ...msgPayload, sender: senderId }]);
+        // 1. Optimistic UI update
+        setMessages(prev => [...prev, msgPayload]);
         setNewMessage('');
-        socket.emit('stop_typing', { to: receiverId, from: senderId }); // Explicitly send stop_typing on send
+        socket.emit('stop_typing', { to: receiverId, from: senderId });
 
         try {
-            await axios.post(`${backendURL}/api/message`, msgPayload, {
+            // 2. Persist message to DB via HTTP API
+            await axios.post(`${backendURL}/api/message`, {
+                receiver: receiverId,
+                message: msgPayload.message,
+                createdAt: msgPayload.createdAt
+            }, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            // The server will then emit 'receive_message' to the receiver,
-            // and the sender's UI already has the message optimistically.
+
+            // 3. Emit message via Socket.IO for real-time delivery to receiver
+            console.log(`[Client] Emitting 'send_message':`, msgPayload);
+            socket.emit('send_message', msgPayload);
+
         } catch (err) {
             console.error('Failed to send message:', err);
             setError('Failed to send message. Please try again.');
+            // Simple rollback for optimistic update
+            setMessages(prev => prev.filter(msg => msg !== msgPayload));
         }
     };
 
@@ -287,7 +423,6 @@ const Chat = () => {
                     <h3 className="text-xl font-bold text-[#333]">
                         {receiverUser?.name || 'Unknown User'}
                     </h3>
-                    {/* Dynamic Online Status */}
                     <p className={`text-sm ${isReceiverOnline ? 'text-green-500' : 'text-gray-500'}`}>
                         {isReceiverOnline ? 'Online' : 'Offline'}
                     </p>
@@ -295,7 +430,12 @@ const Chat = () => {
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 p-6 overflow-y-auto space-y-4 custom-scrollbar">
+            <div
+                ref={chatContainerRef}
+                className="flex-1 p-6 overflow-y-auto space-y-4 custom-scrollbar"
+                onScroll={handleScroll}
+                style={{ scrollBehavior: 'smooth' }}
+            >
                 <AnimatePresence>
                     {Object.keys(groupedMessages).sort().map(dateKey => (
                         <div key={dateKey}>
@@ -333,9 +473,20 @@ const Chat = () => {
                                         }
                                     `}>
                                         <p className="text-sm break-words">{msg.message}</p>
-                                        <span className={`text-xs mt-1 block ${msg.sender === senderId ? 'text-blue-200' : 'text-gray-500'}`}>
-                                            {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </span>
+                                        <div className={`text-xs mt-1 flex items-center justify-between ${msg.sender === senderId ? 'text-blue-200' : 'text-gray-500'}`}>
+                                            <span>
+                                                {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                            {msg.sender === senderId && (
+                                                <span className="ml-2">
+                                                    {msg.seen ? (
+                                                        <span className="text-white font-bold text-sm">✓✓</span>
+                                                    ) : (
+                                                        <span className="text-blue-300 font-bold text-sm">✓</span>
+                                                    )}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                 </motion.div>
                             ))}

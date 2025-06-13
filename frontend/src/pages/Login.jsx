@@ -1,10 +1,14 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
 import { ShopContext } from '../context/ShopContext';
+import { GoogleLogin } from '@react-oauth/google';
 import 'boxicons/css/boxicons.min.css';
+import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
 
 function Login() {
+  const navigate = useNavigate();
   const {
     name, setName,
     email, setEmail,
@@ -13,7 +17,21 @@ function Login() {
   } = useContext(ShopContext);
 
   const [isSignup, setIsSignup] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const backendURL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+    };
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -28,13 +46,37 @@ function Login() {
       const receivedToken = res.data.token;
 
       localStorage.setItem('token', receivedToken);
-      if (typeof setToken === 'function') {
-        setToken(receivedToken);
-      }
+      setToken?.(receivedToken);
 
-      window.location.href = isSignup ? '/createprofile' : '/home';
+      toast.success("Login successful!");
+
+      setTimeout(() => {
+        navigate(isSignup ? '/createprofile' : '/home');
+      }, 1000);
+
     } catch (err) {
-      alert(err.response?.data?.message || 'Something went wrong');
+      toast.error(err.response?.data?.message || 'Something went wrong');
+    }
+  };
+
+  const handleGoogleLoginSuccess = async (credentialResponse) => {
+    try {
+      const res = await axios.post(`${backendURL}/api/user/google-login`, {
+        credential: credentialResponse.credential
+      });
+
+      const { token } = res.data;
+      localStorage.setItem('token', token);
+      setToken(token);
+      console.log('Google login successful:', res.data);
+      toast.success("Login successful!");
+
+      setTimeout(() => {
+        navigate(isSignup ? '/createprofile' : '/home');
+      }, 1000);
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || 'Google login failed');
     }
   };
 
@@ -66,10 +108,10 @@ function Login() {
     signupState: { x: '0%', opacity: 1 },
   };
 
-  return (
+  const desktopView = (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-[#e2e2e2] to-[#c9d6ff]">
       <motion.div className="relative w-[850px] h-[550px] bg-white m-5 rounded-[30px] shadow-2xl overflow-hidden">
-        
+
         <motion.div
           className="absolute right-0 w-1/2 h-full bg-white flex items-center justify-center text-center p-10 z-30"
           variants={loginFormVariants}
@@ -112,13 +154,15 @@ function Login() {
             >
               Login
             </motion.button>
+
             <p className="text-sm my-4 text-[#333]">or login with</p>
-            <div className="flex justify-center space-x-2">
-              {["google", "facebook", "github", "linkedin"].map((social) => (
-                <a key={social} href="#" className="inline-flex p-2 border-2 border-[#ccc] rounded-lg text-2xl text-[#333] hover:bg-[#eee]">
-                  <i className={`bx bxl-${social}`}></i>
-                </a>
-              ))}
+            <div className="flex justify-center my-2">
+              <GoogleLogin
+                onSuccess={handleGoogleLoginSuccess}
+                onError={() => alert('Google Sign In Failed')}
+                theme="outline"
+                size="large"
+              />
             </div>
           </form>
         </motion.div>
@@ -173,13 +217,13 @@ function Login() {
             >
               Register
             </motion.button>
-            <p className="text-sm my-4 text-[#333]">or register with</p>
-            <div className="flex justify-center space-x-2">
-              {["google", "facebook", "github", "linkedin"].map((social) => (
-                <a key={social} href="#" className="inline-flex p-2 border-2 border-[#ccc] rounded-lg text-2xl text-[#333] hover:bg-[#eee]">
-                  <i className={`bx bxl-${social}`}></i>
-                </a>
-              ))}
+
+            <p className="text-sm my-4 text-[#333]">or login with</p>
+            <div className="flex justify-center my-2">
+              <GoogleLogin
+                onSuccess={handleGoogleLoginSuccess}
+                onError={() => alert('Google Sign In Failed')}
+              />
             </div>
           </form>
         </motion.div>
@@ -231,6 +275,91 @@ function Login() {
       </motion.div>
     </div>
   );
+
+  const mobileView = (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-[#e2e2e2] to-[#c9d6ff] p-4">
+      <div className="w-full max-w-md bg-white rounded-[30px] shadow-2xl p-6">
+        <h1 className="text-[32px] font-semibold mb-6 text-[#333] text-center">
+          {isSignup ? 'Register' : 'Login'}
+        </h1>
+
+        <form onSubmit={handleSubmit} className="w-full">
+          {isSignup && (
+            <div className="relative mb-6">
+              <input
+                type="text"
+                placeholder="Username"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                className="w-full px-5 py-3 bg-[#eee] rounded-lg outline-none text-base text-[#333] font-medium placeholder-[#888]"
+              />
+              <i className="bx bxs-user absolute right-5 top-1/2 -translate-y-1/2 text-xl text-[#333]"></i>
+            </div>
+          )}
+          <div className="relative mb-6">
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full px-5 py-3 bg-[#eee] rounded-lg outline-none text-base text-[#333] font-medium placeholder-[#888]"
+            />
+            <i className="bx bxs-envelope absolute right-5 top-1/2 -translate-y-1/2 text-xl text-[#333]"></i>
+          </div>
+          <div className="relative mb-6">
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="w-full px-5 py-3 bg-[#eee] rounded-lg outline-none text-base text-[#333] font-medium placeholder-[#888]"
+            />
+            <i className="bx bxs-lock-alt absolute right-5 top-1/2 -translate-y-1/2 text-xl text-[#333]"></i>
+          </div>
+          {!isSignup && (
+            <div className="text-sm mb-4 text-right">
+              <a href="#" className="text-[#333] hover:underline">Forgot Password?</a>
+            </div>
+          )}
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.98 }}
+            type="submit"
+            className="w-full h-12 bg-[#7494ec] rounded-lg shadow-md text-white font-semibold"
+          >
+            {isSignup ? 'Register' : 'Login'}
+          </motion.button>
+
+          <p className="text-sm my-4 text-[#333] text-center">or {isSignup ? 'register' : 'login'} with</p>
+          <div className="flex justify-center my-2">
+            <GoogleLogin
+              onSuccess={handleGoogleLoginSuccess}
+              onError={() => alert('Google Sign In Failed')}
+              theme="outline"
+              size="large"
+            />
+          </div>
+        </form>
+
+        <div className="mt-6 text-center">
+          <p className="text-base text-[#333]">
+            {isSignup ? 'Already have an account?' : "Don't have an account?"}{' '}
+            <button
+              className="text-[#7494ec] font-semibold hover:underline"
+              onClick={() => setIsSignup(!isSignup)}
+            >
+              {isSignup ? 'Login' : 'Register'}
+            </button>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+
+  return isMobile ? mobileView : desktopView;
 }
 
 export default Login;

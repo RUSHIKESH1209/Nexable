@@ -16,7 +16,7 @@ const Connections = () => {
           <Connections_item />
         </div>
 
-        <div className="hidden md:block md:w-1/3 lg:w-1/4">
+        <div className=" md:block md:w-1/3 lg:w-1/4">
           <Home_suggestions />
         </div>
       </div>

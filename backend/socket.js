@@ -11,8 +11,7 @@ export default function initializeSocket(server) {
   });
 
   io.on('connection', (socket) => {
-    console.log('A user connected:', socket.id);
-
+    console.log('A user connected:', socket.id); 
     let connectedUserId = null;
 
     socket.on('register', (userId) => {
@@ -30,11 +29,13 @@ export default function initializeSocket(server) {
       socket.emit('current_online_users', currentOnlineUserIds);
     });
 
+
+
     socket.on('send_message', ({ sender, receiver, message, createdAt }) => {
       const receiverSockets = usersOnline.get(receiver);
       if (receiverSockets) {
         receiverSockets.forEach(socketId => {
-          io.to(socketId).emit('receive_message', { sender, receiver, message, createdAt });
+          io.to(socketId).emit('receive_message', { sender, receiver, message, createdAt, seen: false });
         });
       }
     });
@@ -58,13 +59,17 @@ export default function initializeSocket(server) {
     });
 
     socket.on('seen', ({ from, by }) => {
+      console.log(`[Server] User ${by} has seen messages from ${from}`);
+
       const senderSockets = usersOnline.get(from);
       if (senderSockets) {
         senderSockets.forEach(socketId => {
-          io.to(socketId).emit('seen', { by });
+          io.to(socketId).emit('seen', { by, from });
         });
+        console.log(`[Server] Notified ${from} that ${by} has seen their messages`);
       }
     });
+
 
     socket.on('disconnect', () => {
       console.log('User disconnected:', socket.id);

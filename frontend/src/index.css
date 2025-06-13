@@ -18,3 +18,11 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
+
+.Toastify__toast--success svg {
+  fill: #7494ec !important; 
+}
+
+.Toastify__progress-bar--success {
+  background-color: #7494ec !important; 
+}

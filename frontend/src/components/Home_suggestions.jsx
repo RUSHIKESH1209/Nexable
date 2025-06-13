@@ -3,6 +3,7 @@ import axios from 'axios';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { ShopContext } from '../context/ShopContext';
+import { toast } from 'react-toastify';
 
 const Home_suggestions = () => {
   const [users, setUsers] = useState([]);
@@ -40,8 +41,11 @@ const Home_suggestions = () => {
       if (response.data.success) {
         setUsers((prev) => prev.filter((user) => user._id !== userId));
       }
+      toast.success('Connection successful', { autoClose: 500 })
+
     } catch (err) {
       console.error('Connection failed:', err);
+      toast.error('Failed to connect');
     }
   };
 
@@ -80,7 +84,7 @@ const Home_suggestions = () => {
                 </p>
                 <div className="flex gap-2 mt-1 sm:mt-0">
                   <button
-                    onClick={() => window.location.href = `/chat/${user._id}`}
+                    onClick={() => navigate(`/chat/${user._id}`)}
                     className="bg-[#dbe6ff] text-[#7494ec] px-3 py-1.5 rounded-full text-xs font-medium hover:bg-[#c6d7fb] transition"
                   >
                     Chat
