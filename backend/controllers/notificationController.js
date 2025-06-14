@@ -10,7 +10,7 @@ export const getNotifications = async (req, res) => {
       .sort({ createdAt: -1 })
       
     res.json({ success: true, notifications });
-    console.log('Notifications fetched successfully' + notifications);
+    console.log('Notifications fetched successfully + notifications);
   } catch (error) {
     res.status(500).json({ success: false, message: 'Error fetching notifications' });
   }
@@ -32,3 +32,4 @@ export const markAsRead = async (req, res) => {
     res.status(500).json({ success: false, message: 'Error updating notification' });
   }
 };
+ 
