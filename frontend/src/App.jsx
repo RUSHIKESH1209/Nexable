@@ -10,7 +10,7 @@ import Navbar from './components/Navbar';
 import Chat from './pages/Chat';
 import Error404Page from './pages/Error404Page';
 import { ShopContext } from './context/ShopContext';
-import ProtectedRoute from './components/ProtectedRoute';
+// import ProtectedRoute from './components/ProtectedRoute';
 
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -39,7 +39,7 @@ const App = () => {
         <Route path='/*' element={<Error404Page />} />
 
         {/* Protected Routes with Navbar */}
-        <Route element={<ProtectedRoute><LayoutWithNavbar /></ProtectedRoute>}>
+        <Route element={<LayoutWithNavbar />}>
           <Route path='/home' element={<Home />} />
           <Route path='/connections' element={<Connections />} />
           <Route path='/notifications' element={<Notifications />} />
