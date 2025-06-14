@@ -31,6 +31,12 @@ app.use('/api/post', postRouter);
 app.use('/api/message', messageRouter);
 app.use('/api/notification', notificationRouter);
 
+app.get('/ping', (req, res) => {
+    console.log('Received keep-alive ping at:', new Date().toISOString());
+    res.status(200).send('Pong! Backend is alive.');
+});
+
+
 app.get('/', (req, res) => res.send('Hello'));
 
 const PORT = process.env.PORT || 3000;

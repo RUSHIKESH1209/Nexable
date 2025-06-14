@@ -1,17 +1,17 @@
 import { Server } from 'socket.io';
-
 const usersOnline = new Map();
+
 
 export default function initializeSocket(server) {
   const io = new Server(server, {
     cors: {
-      origin:  process.env.CLIENT_URL || 'http://localhost:5173',
+      origin: "*",
       credentials: true,
     },
   });
 
   io.on('connection', (socket) => {
-    console.log('A user connected:', socket.id); 
+    console.log('A user connected:', socket.id);
     let connectedUserId = null;
 
     socket.on('register', (userId) => {
