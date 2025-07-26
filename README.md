@@ -1,4 +1,6 @@
 # Nexable 
+<img width="1919" height="901" alt="image" src="https://github.com/user-attachments/assets/245619a4-cd7e-4ba6-980e-a2188254ebcb" />
+
 
 Nexable is a professional social media platform built with the MERN stack, featuring user profiles, connections, posts, real-time messaging, and notifications.
 
