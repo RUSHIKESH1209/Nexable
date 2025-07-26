@@ -4,6 +4,8 @@ Nexable is a professional social media platform built with the MERN stack, featu
 
 ## 🔗 Live Demo
 [Click here to view the live app](https://nexable-flame.vercel.app/) 
+
+
 <img width="1919" height="901" alt="image" src="https://github.com/user-attachments/assets/245619a4-cd7e-4ba6-980e-a2188254ebcb" />
 
 
