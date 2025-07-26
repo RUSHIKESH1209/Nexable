@@ -1,7 +1,10 @@
-
 # Nexable 
 
 Nexable is a professional social media platform built with the MERN stack, featuring user profiles, connections, posts, real-time messaging, and notifications.
+
+## 🔗 Live Demo
+
+[Click here to view the live app](https://nexable.vercel.app) 
 
 ## Features
 
@@ -20,4 +23,3 @@ Nexable is a professional social media platform built with the MERN stack, featu
 - **Frontend:** React, Tailwind CSS, Framer Motion, Axios, Vite
 - **Backend:** Node.js, Express, MongoDB, Mongoose, Socket.IO
 - **Others:** JWT, Cloudinary, dotenv
-```
